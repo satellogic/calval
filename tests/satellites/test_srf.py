@@ -11,3 +11,4 @@ def test_srf_interpolates_correctly():
     assert srf[end] == response[-1]
     assert srf[start + 2.5] == .75 * response[0] + .25 * response[1]
     assert np.allclose(srf[[start, end]], [response[0], response[-1]])
+    assert srf.spacing == 10
