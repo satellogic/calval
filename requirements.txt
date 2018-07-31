@@ -2,4 +2,5 @@ appdirs
 numpy
 matplotlib
 pandas>=0.20
-telluric>0.1
+telluric>=0.1
+pytest
