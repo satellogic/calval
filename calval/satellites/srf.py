@@ -20,10 +20,10 @@ class SRF:
     def spacing(self):
         return self.wavelengths[1] - self.wavelengths[0]
 
-    def __getitem__(self, wavelength):
+    def __call__(self, wavelength):
         """
-        calculate SRF at specified wavelength (using linear interpolation) .
+        calculate SRF at specified wavelength (using linear interpolation).
         :param wavelength: single value or array. in [nm]
-        :return: single value or array of responses
+        :return: single value or array of responses. returns np.nan if outside the range
         """
-        return np.interp(wavelength, self.wavelengths, self.response)
+        return np.interp(wavelength, self.wavelengths, self.response, left=np.nan, right=np.nan)
