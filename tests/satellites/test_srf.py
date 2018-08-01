@@ -1,6 +1,6 @@
-import numpy as np
+import pytest
 
-from calval.satellites.srf import SRF
+from calval.satellites.srf import *
 
 
 def test_srf_interpolates_correctly():
@@ -14,3 +14,10 @@ def test_srf_interpolates_correctly():
     assert srf.spacing == 10
     assert np.isnan(srf(start - 1))
     assert np.isnan(srf(end + 1))
+
+
+def test_sentinel():
+    # comparing central wavelength to https://en.wikipedia.org/wiki/Sentinel-2
+    assert Sentinel2Blue().center == pytest.approx(0.490, abs=.01)
+    assert Sentinel2Green().center == pytest.approx(0.560, abs=.01)
+    assert Sentinel2Red().center == pytest.approx(0.665, abs=.01)
