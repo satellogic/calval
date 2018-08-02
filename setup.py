@@ -10,7 +10,7 @@ setup(
     version='0.1.0.dev0',
     maintainer_email='amit@satellogic.com',
     packages=find_packages(),
-    package_data = {
+    package_data={
         'calval': ['site_data/*']
     },
     install_requires=reqs
