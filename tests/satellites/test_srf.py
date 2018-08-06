@@ -1,6 +1,8 @@
 import pytest
 
-from calval.satellites.srf import *
+import numpy as np
+
+from calval.satellites.srf import SRF, Sentinel2Red, Sentinel2Green, Sentinel2Blue, plot_srfs
 
 
 def test_srf_interpolates_correctly():
@@ -16,8 +18,20 @@ def test_srf_interpolates_correctly():
     assert np.isnan(srf(end + 1))
 
 
+def test_as_dataframe():
+    srf = Sentinel2Green()
+    df = srf.as_dataframe()
+    assert df['response'][srf.start] == srf(srf.start)
+
+
 def test_sentinel():
     # comparing central wavelength to https://en.wikipedia.org/wiki/Sentinel-2
     assert Sentinel2Blue().center == pytest.approx(0.490, abs=.01)
     assert Sentinel2Green().center == pytest.approx(0.560, abs=.01)
     assert Sentinel2Red().center == pytest.approx(0.665, abs=.01)
+
+
+def test_plot():
+    # checks plot_srf doesn't fail
+    srfs = [Sentinel2Red(), Sentinel2Green(), Sentinel2Blue()]
+    plot_srfs(srfs, show=False)
