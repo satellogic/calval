@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.switch_backend('Agg')
 
 
 band_colors = {'blue': 'b', 'green': 'g', 'red': 'r', 'nir': 'k'}
