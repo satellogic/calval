@@ -26,9 +26,9 @@ def test_as_dataframe():
 
 def test_sentinel():
     # comparing central wavelength to https://en.wikipedia.org/wiki/Sentinel-2
-    assert Sentinel2Blue().center == pytest.approx(0.490, abs=.01)
-    assert Sentinel2Green().center == pytest.approx(0.560, abs=.01)
-    assert Sentinel2Red().center == pytest.approx(0.665, abs=.01)
+    assert Sentinel2Blue().center == pytest.approx(490, abs=10)
+    assert Sentinel2Green().center == pytest.approx(560, abs=.10)
+    assert Sentinel2Red().center == pytest.approx(665, abs=10)
 
 
 def test_plot():
