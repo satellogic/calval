@@ -29,4 +29,4 @@ define spectral response of a camera:
 
 simulate TOA/SR of specific camera, from site measurements:
 
-.. image:: https://user-images.githubusercontent.com/17533233/43821224-2e2a18e6-9af1-11e8-9c54-f01faec1a168.png
+.. image:: https://user-images.githubusercontent.com/17533233/43821923-2037a0ee-9af3-11e8-9016-07ea0e538c53.png
