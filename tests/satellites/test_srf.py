@@ -2,7 +2,9 @@ import pytest
 
 import numpy as np
 
-from calval.satellites.srf import SRF, Sentinel2Red, Sentinel2Green, Sentinel2Blue, plot_srfs
+from calval.satellites.srf import \
+    (SRF, Sentinel2Red, Sentinel2Green, Sentinel2Blue, plot_srfs,
+     NewsatBlue, NewsatGreen, NewsatRed, NewsatNir, NewsatPan)
 
 
 def test_srf_interpolates_correctly():
@@ -29,6 +31,12 @@ def test_sentinel():
     assert Sentinel2Blue().center == pytest.approx(490, abs=10)
     assert Sentinel2Green().center == pytest.approx(560, abs=.10)
     assert Sentinel2Red().center == pytest.approx(665, abs=10)
+
+
+def test_newsat():
+    # comparing spacing is indeed 1pix
+    for srf in [NewsatBlue, NewsatGreen, NewsatRed, NewsatNir, NewsatPan]:
+        assert srf().spacing == pytest.approx(1)
 
 
 def test_plot():
