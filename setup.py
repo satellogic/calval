@@ -14,9 +14,7 @@ setup(
     author='Slava Kerner, Amit Aronovitch',
     url='https://github.com/satellogic/calval',
     author_email='amit@satellogic.com',
-    description="""\
-Python package for easy radiometric calibration&validation of satellite EO payloads
-""",
+    description="Python package for easy radiometric calibration&validation of satellite EO payloads",
     long_description=open('README.rst').read(),
     classifiers=[
         'Development Status :: 4 - Beta',
