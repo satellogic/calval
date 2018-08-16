@@ -5,6 +5,7 @@ import collections
 import zipfile
 
 from .scene_info import SceneInfo, extract_archive, scaling
+from .scene_data import SceneData
 
 _product_names = {
     'MSIL1C': 'toa',
@@ -43,11 +44,18 @@ sentinelid = collections.namedtuple(
     ['mission', 'product', 'captime', 'grid_n', 'grid_r', 'box', 'othertime'])
 
 
+class SentinelSceneData(SceneData):
+    def __init__(self, sceneinfo, path=None):
+        super().__init__(sceneinfo, path)
+
+
 class SentinelSceneInfo(SceneInfo):
     archive_suffix = '.zip'
+    folder_suffix = '.SAFE'
     provider = 'sentinel2'
 
     date_fmt = '%Y%m%dT%H%M%S'
+    scenedata_class = SentinelSceneData
 
     def __init__(self, data, config=None):
         super().__init__(config)
@@ -65,6 +73,16 @@ class SentinelSceneInfo(SceneInfo):
             self.archive_path(), self.scene_path(),
             mkdir=False, opener=zipfile.ZipFile)
         return extract
+
+    @classmethod
+    def from_foldername(cls, fname):
+        if not fname.endswith(cls.folder_suffix):
+            return None
+        sid = fname[:-len(cls.folder_suffix)]
+        if len(sid.split('_')) != 7:
+            return None
+        data = sentinelid(*sid.split('_'))
+        return cls(data)
 
     @classmethod
     def from_filename(cls, fname):

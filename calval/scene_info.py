@@ -60,6 +60,22 @@ class SceneInfo:
             path = os.path.join(self.config['data_dir'], name)
         return path
 
+    @classmethod
+    def from_filename(cls, filename):
+        for c in cls.__subclasses__():
+            scene_info = c.from_filename(filename)
+            if scene_info is not None:
+                return scene_info
+        raise ValueError('Unknown filename format: {}'.format(filename))
+
+    @classmethod
+    def from_foldername(cls, foldername):
+        for c in cls.__subclasses__():
+            scene_info = c.from_foldername(foldername)
+            if scene_info is not None:
+                return scene_info
+        raise ValueError('Unknown foldername format: {}'.format(foldername))
+
     @property
     def scenes_path(self):
         return self._data_path('scenes')

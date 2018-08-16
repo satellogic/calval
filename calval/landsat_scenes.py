@@ -5,6 +5,7 @@ from collections import namedtuple
 import tarfile
 
 from .scene_info import SceneInfo, extract_archive, scaling
+from .scene_data import SceneData
 
 _site_prs = {
     'baotou': ['128032', '127032'],
@@ -43,9 +44,15 @@ displayid = namedtuple(
 )
 
 
+class LandsatSceneData(SceneData):
+    def __init__(self, sceneinfo, path=None):
+        super().__init__(sceneinfo, path)
+
+
 class LandsatSceneInfo(SceneInfo):
     archive_suffix = '.tar.gz'
     provider = 'landsat8'
+    scenedata_class = LandsatSceneData
 
     def __init__(self, data, config=None):
         super().__init__(config)
@@ -82,6 +89,19 @@ class LandsatSceneInfo(SceneInfo):
         data[fields.index('product')] = 'sr'
         data[fields.index('scene_id')] = sid
         return cls(displayid(*data))
+
+    @classmethod
+    def from_foldername(cls, fname):
+        if not fname.startswith('LC08'):
+            return None
+        if '_' not in fname:
+            return cls.from_l2_sceneid(fname)
+        flds = fname.split('_')
+        if len(flds) != 7:
+            return None
+        flds = flds + ['toa', fname]
+        data = displayid(*flds)
+        return cls(data)
 
     @classmethod
     def from_filename(cls, fname):

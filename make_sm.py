@@ -1,4 +1,7 @@
-from calval.scene_utils import make_sceneinfo, make_sat_measurements
+from calval.scene_info import SceneInfo
+import calval.sentinel_scenes
+import calval.landsat_scenes
+from calval.scene_utils import make_sat_measurements
 from calval.sat_measurements import SatMeasurements
 
 
@@ -10,7 +13,7 @@ if (1):
     # satellites = #['landsat8', 'sentinel2']
     site_name = 'negev'
     filenames = get_filenames()
-    scene_infos = (make_sceneinfo(scene) for scene in filenames)
+    scene_infos = (SceneInfo.from_filename(scene) for scene in filenames)
     for info in scene_infos:
         print(info.archive_filename())
     product = 'toa'
@@ -30,7 +33,7 @@ if (1):
     import matplotlib.pyplot
     matplotlib.pyplot.show()
 
-# plot existing csv fgiles
+# plot existing csv files
 if (0):
     site, product = 'negev', 'toa'
     path = '{}_{}_sentinel2.csv'.format(site, product)
