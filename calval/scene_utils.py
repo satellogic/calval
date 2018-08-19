@@ -31,8 +31,10 @@ def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G
             print('---->extracting sceneinfo')
             sceneinfo.extract_archive()
         scenedata = SceneData.from_sceneinfo(sceneinfo)
+        # reading the metadata provides better timestamp than the sceneinfo one
+        scenedata._read_l1_metadata()
 
-        row = OrderedDict(timestamp=sceneinfo.timestamp, provider=sceneinfo.provider)
+        row = OrderedDict(timestamp=scenedata.timestamp, provider=sceneinfo.provider)
         row.update(scenedata.extract_values(aoi, bands))
         rows.append(row)
     df = pd.DataFrame(rows)

@@ -36,14 +36,18 @@ class SceneData(ABC):
         sceneinfo = SceneInfo.from_foldername(os.path.basename(path))
         return cls.from_sceneinfo(sceneinfo, path)
 
+    def get_band_path(self, band):
+        path = self.sceneinfo.get_band_path(band)
+        if '*' in path:
+            paths = glob.glob(path)
+            assert len(paths) == 1, 'No unique band-path found'
+            path = paths[0]
+        return path
+
     def extract_values(self, aoi, bands=band_names):
         row = OrderedDict()
         for band in bands:
-            path = self.sceneinfo.get_band_path(band)
-            if '*' in path:
-                paths = glob.glob(path)
-                assert len(paths) == 1, 'No unique band-path found'
-                path = paths[0]
+            path = self.get_band_path(band)
             raster = tl.georaster.GeoRaster2.open(path)
             scale = self.sceneinfo.get_scale(band)
             aoi_raster = raster.crop(aoi).mask(aoi)

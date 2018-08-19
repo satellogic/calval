@@ -1,8 +1,10 @@
 from calval.scene_info import SceneInfo
-import calval.sentinel_scenes
-import calval.landsat_scenes
+# Import provider module to enable the factory mechanism
+import calval.sentinel_scenes  # noqa: F401
+import calval.landsat_scenes  # noqa: F401
 from calval.scene_utils import make_sat_measurements
 from calval.sat_measurements import SatMeasurements
+from calval.scene_data import SceneData
 
 
 def get_filenames():
@@ -13,7 +15,7 @@ if (1):
     # satellites = #['landsat8', 'sentinel2']
     site_name = 'negev'
     filenames = get_filenames()
-    scene_infos = (SceneInfo.from_filename(scene) for scene in filenames)
+    scene_infos = [SceneInfo.from_filename(scene) for scene in filenames]
     for info in scene_infos:
         print(info.archive_filename())
     product = 'toa'
@@ -32,6 +34,41 @@ if (1):
     # df.to_csv('{}_{}_sentinel2.csv'.format(site_name, product))
     import matplotlib.pyplot
     matplotlib.pyplot.show()
+
+if (1):
+    scene_infos = [SceneInfo.from_filename(scene) for scene in get_filenames()]
+    s_l1 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'toa']
+    s_l2 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'sr']
+    scene = SceneData.from_sceneinfo(s_l1[0])
+    scene._read_l1_metadata()
+    print('s2 l1 si timestamp:', scene.sceneinfo.timestamp)
+    print('s2 l1 timestamp:', scene.timestamp)
+    print('s2 l1 sun angle:', scene.sun_average_angle)
+    print('s2 l1 sat angle:', scene.sat_average_angle)
+    scene = SceneData.from_sceneinfo(s_l2[0])
+    scene._read_l1_metadata()
+    print('s2 l2 timestamp:', scene.timestamp)
+    print('s2 l2 sun angle:', scene.sun_average_angle)
+    print('s2 l2 sat angle:', scene.sat_average_angle)
+
+if (1):
+    ls_l1 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'toa']
+    ls_l2 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'sr']
+    si = ls_l1[0]
+    scene = SceneData.from_sceneinfo(si)
+    scene._read_l1_metadata()
+    print('ls l1 si timestamp:', scene.sceneinfo.timestamp)
+    print('ls l1 timestamp:', scene.timestamp)
+    print('ls l1 sun angle:', scene.sun_average_angle)
+    print('ls l1 sat angle:', scene.sat_average_angle)
+    print('ls l1 roll:', scene.roll_angle)
+    print('ls l1 esd:', scene.earth_sun_distance)
+    print('ls l1 cloud cover:', scene.cloud_cover)
+    scene2 = SceneData.from_sceneinfo(ls_l2[0])
+    scene2._read_l1_metadata()
+    print('ls l1 timestamp:', scene2.timestamp)
+    print('ls l2 sun angle:', scene2.sun_average_angle)
+    print('ls l2 sat angle:', scene2.sat_average_angle)
 
 # plot existing csv files
 if (0):

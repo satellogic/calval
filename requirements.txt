@@ -1,4 +1,5 @@
 radcalnet==0.1.1.dev1
+python-dateutil
 appdirs
 numpy
 matplotlib
