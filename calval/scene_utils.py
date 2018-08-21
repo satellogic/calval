@@ -1,47 +1,12 @@
-import glob
 from collections import OrderedDict
-import numpy as np
 import pandas as pd
-import telluric as tl
 from calval.sites import get_site_aoi
-from calval.sentinel_scenes import SentinelSceneInfo
-from calval.landsat_scenes import LandsatSceneInfo
-from calval.sat_measurements import SatMeasurements, band_names
-
-
-_info_classes = [SentinelSceneInfo, LandsatSceneInfo]
-
-
-def make_sceneinfo(filename):
-    for cls in _info_classes:
-        scene_info = cls.from_filename(filename)
-        if scene_info is not None:
-            return scene_info
-    raise ValueError('Unknown filename format: {}'.format(filename))
-
-
-def _stats(img):
-    return np.ma.median(img), np.ma.average(img), np.ma.std(img)
-
-
-def extract_values(info, aoi, bands=band_names):
-    row = OrderedDict()
-    for band in bands:
-        path = info.get_band_path(band)
-        if '*' in path:
-            paths = glob.glob(path)
-            assert len(paths) == 1, 'No unique band-path found'
-            path = paths[0]
-        raster = tl.georaster.GeoRaster2.open(path)
-        scale = info.get_scale(band)
-        aoi_raster = raster.crop(aoi).mask(aoi)
-        img = aoi_raster.image * scale.multiply + scale.add
-        med, avg, std = _stats(img)
-        print('--->', band, med, avg, std)
-        row['{}_median'.format(band)] = med
-        row['{}_average'.format(band)] = avg
-        row['{}_std'.format(band)] = std
-    return row
+from calval.sat_measurements import SatMeasurements
+from calval.scene_info import SceneInfo
+from calval.scene_data import SceneData
+# Import provider module to enable the factory mechanism
+import calval.sentinel_scenes  # noqa: F401
+import calval.landsat_scenes  # noqa: F401
 
 
 def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G', 'R', 'NIR']):
@@ -52,22 +17,25 @@ def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G
     A `label` may be added to tag the resulting SatMeasurements object.
     """
     if len(scenes) and isinstance(scenes[0], str):
-        scenes = (make_sceneinfo(scene) for scene in scenes)
+        scenes = (SceneInfo.from_filename(scene) for scene in scenes)
 
     aoi = get_site_aoi(site_name)
     rows = []
-    for scene in scenes:
-        if not scene.contains_site(site_name):
+    for sceneinfo in scenes:
+        if not sceneinfo.contains_site(site_name):
             continue
-        if not scene.product == product:
+        if not sceneinfo.product == product:
             continue
-        print('archive:', scene.archive_path(), scene.is_archive())
-        if not scene.is_scene():
-            print('---->extracting scene')
-            scene.extract_archive()
+        print('archive:', sceneinfo.archive_path(), sceneinfo.is_archive())
+        if not sceneinfo.is_scene():
+            print('---->extracting sceneinfo')
+            sceneinfo.extract_archive()
+        scenedata = SceneData.from_sceneinfo(sceneinfo)
+        # reading the metadata provides better timestamp than the sceneinfo one
+        scenedata._read_l1_metadata()
 
-        row = OrderedDict(timestamp=scene.timestamp, provider=scene.provider)
-        row.update(extract_values(scene, aoi, bands))
+        row = OrderedDict(timestamp=scenedata.timestamp, provider=sceneinfo.provider)
+        row.update(scenedata.extract_values(aoi, bands))
         rows.append(row)
     df = pd.DataFrame(rows)
     df = df.set_index('timestamp').sort_index()

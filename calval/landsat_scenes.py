@@ -1,10 +1,15 @@
 import os
+import glob
 import datetime as dt
 import functools
 from collections import namedtuple
 import tarfile
 
-from .scene_info import SceneInfo, extract_archive, scaling
+import dateutil.parser
+from calval.geometry import IncidenceAngle
+from calval.scene_info import SceneInfo, extract_archive, scaling
+from calval.scene_data import SceneData
+from calval.landsat_mtl import read_mtl
 
 _site_prs = {
     'baotou': ['128032', '127032'],
@@ -43,9 +48,62 @@ displayid = namedtuple(
 )
 
 
+def _displayid_str(displayid):
+    return '_'.join(fld or '*' for fld in displayid[:7])
+
+
+class LandsatSceneData(SceneData):
+    def __init__(self, sceneinfo, path=None):
+        super().__init__(sceneinfo, path)
+        self._set_l1_sceneinfo()
+
+    def _set_l1_sceneinfo(self):
+        paths = glob.glob(os.path.join(self.path, self.sceneinfo.l1_mtl_filename()))
+        assert len(paths) == 1, 'No unique MTL file found'
+        l1_id = os.path.basename(paths[0])[:-len('_MTL.txt')]
+        self.l1_sceneinfo = SceneInfo.from_foldername(l1_id)
+
+    def _mtl_path(self):
+        return os.path.join(self.path, self.l1_sceneinfo.l1_mtl_filename())
+
+    def _read_l1_metadata(self):
+        self.l1_metadata = meta = read_mtl(self._mtl_path())['L1_METADATA_FILE']
+
+        data = meta['PRODUCT_METADATA']
+        timestamp = dateutil.parser.parse(
+            data['DATE_ACQUIRED'].strftime('%Y-%m-%d') + 'T' + data['SCENE_CENTER_TIME'])
+        self.timestamp = timestamp
+
+        data = meta['RADIOMETRIC_RESCALING']
+        scalings = []
+        for iband in range(9):
+            scalings.append(scaling(
+                data['REFLECTANCE_MULT_BAND_{}'.format(iband+1)],
+                data['REFLECTANCE_ADD_BAND_{}'.format(iband+1)]))
+        rad_scalings = []
+        for iband in range(11):
+            rad_scalings.append(scaling(
+                data['RADIANCE_MULT_BAND_{}'.format(iband+1)],
+                data['RADIANCE_ADD_BAND_{}'.format(iband+1)]))
+        self.l1_scalings = scalings, rad_scalings
+
+        data = meta['IMAGE_ATTRIBUTES']
+        for attr in ['roll_angle', 'earth_sun_distance', 'cloud_cover', 'cloud_cover_land']:
+            setattr(self, attr, data[attr.upper()])
+        self.sun_average_angle = IncidenceAngle(data['SUN_AZIMUTH'], data['SUN_ELEVATION'])
+        # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
+        # For accurate computation, need the Azimuth and the Roll
+        # * "Positive roll is to the port side of the spacecraft and the negative roll is to the starboard side"
+        #   i.e. it's relative to spacecraft's orientation - need Azimuth...
+        # * Azimuth can be computed from image corners
+        #   https://gis.stackexchange.com/questions/98425/calculate-actual-landsat-image-corner-coordinates-to-derive-azimuth-heading?rq=1
+        self.sat_average_angle = IncidenceAngle(180, 90)
+
+
 class LandsatSceneInfo(SceneInfo):
     archive_suffix = '.tar.gz'
     provider = 'landsat8'
+    scenedata_class = LandsatSceneData
 
     def __init__(self, data, config=None):
         super().__init__(config)
@@ -82,6 +140,19 @@ class LandsatSceneInfo(SceneInfo):
         data[fields.index('product')] = 'sr'
         data[fields.index('scene_id')] = sid
         return cls(displayid(*data))
+
+    @classmethod
+    def from_foldername(cls, fname):
+        if not fname.startswith('LC08'):
+            return None
+        if '_' not in fname:
+            return cls.from_l2_sceneid(fname)
+        flds = fname.split('_')
+        if len(flds) != 7:
+            return None
+        flds = flds + ['toa', fname]
+        data = displayid(*flds)
+        return cls(data)
 
     @classmethod
     def from_filename(cls, fname):
@@ -126,3 +197,6 @@ class LandsatSceneInfo(SceneInfo):
             ])
             band_fname = '{}_{}.{}'.format(sid, band, 'tif')
         return os.path.join(self.scene_path(), band_fname)
+
+    def l1_mtl_filename(self):
+        return _displayid_str(self._data) + '_MTL.txt'
