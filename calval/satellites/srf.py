@@ -223,6 +223,6 @@ def plot_srfs(srfs, colors=band_colors, styles=satellite_styles, fig=None, title
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.tight_layout()
     if show:
-        plt.show()
+        plt.show()  # pragma: no cover
 
     return fig

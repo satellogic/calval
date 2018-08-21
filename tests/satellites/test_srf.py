@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from calval.satellites.srf import \
-    (SRF, Sentinel2Red, Sentinel2Green, Sentinel2Blue, plot_srfs,
+    (SRF, PerfectSRF, Sentinel2Red, Sentinel2Green, Sentinel2Blue, plot_srfs,
      NewsatBlue, NewsatGreen, NewsatRed, NewsatNir, NewsatPan)
 
 
@@ -18,6 +18,11 @@ def test_srf_interpolates_correctly():
     assert srf.spacing == 10
     assert np.isnan(srf(start - 1))
     assert np.isnan(srf(end + 1))
+
+
+def test_basic():
+    perfect = PerfectSRF(100, 200)
+    assert perfect.bandwidth == 100
 
 
 def test_as_dataframe():
