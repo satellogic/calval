@@ -7,6 +7,12 @@ proj_dir = os.path.abspath(os.path.dirname(__file__))
 reqs = [line.strip()
         for line in open(
                 os.path.join(proj_dir, 'requirements.txt'), encoding='utf-8')]
+install_requires = [req.split('#egg=')[-1].replace('-', '==')
+                    if '#egg=' in req else req
+                    for req in reqs]
+dependency_links = [req for req in reqs if 'git+' in req]
+print(install_requires)
+print(dependency_links)
 
 setup(
     name='calval',
@@ -29,5 +35,6 @@ setup(
     package_data={
         'calval': ['site_data/*']
     },
-    install_requires=reqs
+    install_requires=install_requires,
+    dependency_links=dependency_links
 )
