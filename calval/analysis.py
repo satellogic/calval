@@ -29,9 +29,9 @@ def exatmospheric_irradiance(srf, dlambda_nm=0.5, start_nm=200.0, end_nm=2000.0)
     """
     srr = SolarIrradianceSpectrum(TOTAL_IRRADIANCE_SPECTRUM_2000ASTM, dlambda=dlambda_nm/1000)
     srr.interpolate(ival_wavelength=(start_nm/1000, end_nm/1000))
-    x = srr.ipol_wavelength * 1000
-    vals = srf(x) * srr.ipol_irradiance
-    avg = np.dot(srf(x) , srr.ipol_irradiance) / np.sum(srf(x))
+    lambdas = srr.ipol_wavelength * 1000
+    response = srf(lambdas)
+    avg = np.dot(response, srr.ipol_irradiance) / np.sum(response)
     return avg
 
 
