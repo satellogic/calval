@@ -6,6 +6,17 @@ import matplotlib.pyplot as plt
 band_colors = {'blue': 'b', 'green': 'g', 'red': 'r', 'nir': 'k'}
 satellite_styles = {'landsat8': 'o-', 'sentinel2': 'd--', 'newsat': 'd-'}
 
+# Following is from prelaunch estimates
+# https://landsat.gsfc.nasa.gov/preliminary-spectral-response-of-the-operational-land-imager-in-band-band-average-relative-spectral-response/
+# TODO: replace that with more accurate data from
+# https://landsat.usgs.gov/sites/default/files/documents/Ball_BA_RSR.xlsx
+_landsat_band_ranges = {
+    'blue': [452.02, 512.06],
+    'green': [532.74, 590.07],
+    'red': [635.85, 673.32],
+    'nir': [850.54, 878.79]
+}
+
 
 # Spectral Response Function, providing response per wavelength
 class SRF:
@@ -78,6 +89,35 @@ class Sentinel2Red(SRF):
                          [0.09225, 0.81775, 0.99038, 0.99545, 0.95701, 0.81417, 0.76998, 0.83083,
                           0.89627, 0.95593, 0.97240, 0.96571, 0.91448, 0.42297, 0.04189],
                          'sentinel2', 'red')
+
+
+# Estimated Landsat SRF
+class Landsat8Blue(SRF):
+    def __init__(self):
+        super().__init__(_landsat_band_ranges['blue'][0], _landsat_band_ranges['blue'][1],
+                         [1.0, 1.0],
+                         'landsat8', 'blue')
+
+
+class Landsat8Green(SRF):
+    def __init__(self):
+        super().__init__(_landsat_band_ranges['green'][0], _landsat_band_ranges['green'][1],
+                         [1.0, 1.0],
+                         'landsat8', 'green')
+
+
+class Landsat8Red(SRF):
+    def __init__(self):
+        super().__init__(_landsat_band_ranges['red'][0], _landsat_band_ranges['red'][1],
+                         [1.0, 1.0],
+                         'landsat8', 'red')
+
+
+class Landsat8Nir(SRF):
+    def __init__(self):
+        super().__init__(_landsat_band_ranges['nir'][0], _landsat_band_ranges['nir'][1],
+                         [1.0, 1.0],
+                         'landsat8', 'nir')
 
 
 class PerfectSRF(SRF):  # mostly for tests

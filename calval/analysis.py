@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pyspectral.solar import SolarIrradianceSpectrum, TOTAL_IRRADIANCE_SPECTRUM_2000ASTM
 
 
 def integrate(site_measurements, srf):
@@ -18,6 +19,20 @@ def integrate(site_measurements, srf):
         return pd.Series(data=integrated_values).astype(np.float32)
 
     return [_integrate(getattr(site_measurements, data), srf) for data in ['toa', 'toa_errs', 'sr', 'sr_errs']]
+
+
+def exatmospheric_irradiance(srf, dlambda_nm=0.5, start_nm=200.0, end_nm=2000.0):
+    """
+    Compute the exatmospheric solar irradiance at 1au of given SRF
+    `dlambda_nm`, `start_nm`, `end_nm`: interpolation parameters for the solar spectrum
+    :return: band irradiance at 1au, in [W/(m^2 um)]
+    """
+    srr = SolarIrradianceSpectrum(TOTAL_IRRADIANCE_SPECTRUM_2000ASTM, dlambda=dlambda_nm/1000)
+    srr.interpolate(ival_wavelength=(start_nm/1000, end_nm/1000))
+    x = srr.ipol_wavelength * 1000
+    vals = srf(x) * srr.ipol_irradiance
+    avg = np.dot(srf(x) , srr.ipol_irradiance) / np.sum(srf(x))
+    return avg
 
 
 def plot(types, site_measurements, srfs, with_errors=True, fig=None, show=True):

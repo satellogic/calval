@@ -7,8 +7,9 @@ import numpy as np
 
 import calval.batch_plot  # noqa: F401
 from radcalnet.site_measurements import SiteMeasurements
-from calval.satellites.srf import SRF, Sentinel2Green, Sentinel2Blue
-from calval.analysis import integrate, plot
+from calval.satellites.srf import (
+    SRF, Sentinel2Green, Sentinel2Blue, Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir)
+from calval.analysis import integrate, plot, exatmospheric_irradiance
 
 
 def test_integrate():
@@ -20,6 +21,17 @@ def test_integrate():
     sr_std = np.std(sr.values)  # due to proximity in time, most of variance should come from measurements noise
     sr_expected_std = np.mean(sr_errs.values)
     assert sr_std == pytest.approx(sr_expected_std, rel=0.1)
+
+
+def test_exatmospheric_irradiance():
+    # compare results to info from
+    # https://en.wikipedia.org/wiki/Landsat_8#Operational_Land_Imager
+    landsat_irradiances = [1925, 1826, 1574, 955]
+    for i, srf_class in enumerate([Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir]):
+        irradiance = exatmospheric_irradiance(srf_class())
+        ref_value = landsat_irradiances[i]
+        print(irradiance, ref_value, (irradiance - ref_value) / ref_value)
+        assert irradiance == pytest.approx(ref_value, rel=0.03)
 
 
 def test_plot():

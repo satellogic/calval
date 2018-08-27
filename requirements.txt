@@ -3,6 +3,7 @@ python-dateutil
 appdirs
 numpy
 git+https://github.com/AmitAronovitch/pysolar.git@0.7+pre.0.8#egg=pysolar-0.7+pre.0.8
+pyspectral
 matplotlib
 pandas>=0.20
 telluric>=0.1
