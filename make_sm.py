@@ -35,6 +35,7 @@ if (1):
     import matplotlib.pyplot
     matplotlib.pyplot.show()
 
+# some metadata analysis (sentinel)
 if (1):
     scene_infos = [SceneInfo.from_filename(scene) for scene in get_filenames()]
     s_l1 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'toa']
@@ -51,7 +52,9 @@ if (1):
     print('s2 l2 sun angle:', scene.sun_average_angle)
     print('s2 l2 sat angle:', scene.sat_average_angle)
 
+# some metadata analysis (landsat)
 if (1):
+    scene_infos = [SceneInfo.from_filename(scene) for scene in get_filenames()]
     ls_l1 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'toa']
     ls_l2 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'sr']
     si = ls_l1[0]
@@ -60,6 +63,9 @@ if (1):
     print('ls l1 si timestamp:', scene.sceneinfo.timestamp)
     print('ls l1 timestamp:', scene.timestamp)
     print('ls l1 sun angle:', scene.sun_average_angle)
+    print('ls l1 computed sun angle:', scene.center_sunpos.position(scene.timestamp))
+    print('ls l1 sun distance:', scene.earth_sun_distance)
+    print('ls l1 computed sun distance:', scene.center_sunpos.distance_au(scene.timestamp))
     print('ls l1 sat angle:', scene.sat_average_angle)
     print('ls l1 roll:', scene.roll_angle)
     print('ls l1 esd:', scene.earth_sun_distance)
@@ -68,7 +74,58 @@ if (1):
     scene2._read_l1_metadata()
     print('ls l1 timestamp:', scene2.timestamp)
     print('ls l2 sun angle:', scene2.sun_average_angle)
+    print('ls l2 computed sun angle:', scene2.center_sunpos.position(scene2.timestamp))
+    print('ls l2 sun distance:', scene2.earth_sun_distance)
+    print('ls l2 computed sun distance:', scene2.center_sunpos.distance_au(scene2.timestamp))
     print('ls l2 sat angle:', scene2.sat_average_angle)
+
+# testing stuff (remove that)
+if (1):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from calval.satellites.srf import Sentinel2Green, Sentinel2Red, Landsat8Blue, NewsatBlue, NewsatRed
+    from pyspectral.solar import (SolarIrradianceSpectrum, TOTAL_IRRADIANCE_SPECTRUM_2000ASTM)
+    srr = SolarIrradianceSpectrum(TOTAL_IRRADIANCE_SPECTRUM_2000ASTM, dlambda=0.0005)
+    srr.interpolate(ival_wavelength=(0.200, 2.000))
+    print(srr.units)
+    print(srr.ipol_wavelength, srr.ipol_irradiance)
+
+    plt.figure()
+    plt.plot(srr.ipol_wavelength, srr.ipol_irradiance, 'k-.')
+    srf = Sentinel2Green()
+    x = srr.ipol_wavelength * 1000
+    vals = srf(x) * srr.ipol_irradiance
+    avg = np.dot(srf(x), srr.ipol_irradiance) / np.sum(srf(x))
+    plt.plot(srr.ipol_wavelength, vals, 'g-')
+    plt.plot([srf.start/1000, srf.end/1000], [avg, avg], 'g--')
+
+    srf = Sentinel2Red()
+    x = srr.ipol_wavelength * 1000
+    vals = srf(x) * srr.ipol_irradiance
+    avg = np.dot(srf(x), srr.ipol_irradiance) / np.sum(srf(x))
+    plt.plot(srr.ipol_wavelength, vals, 'r-')
+    plt.plot([srf.start/1000, srf.end/1000], [avg, avg], 'r--')
+
+    srf = Landsat8Blue()
+    x = srr.ipol_wavelength * 1000
+    vals = srf(x) * srr.ipol_irradiance
+    avg = np.dot(srf(x), srr.ipol_irradiance) / np.sum(srf(x))
+    plt.plot(srr.ipol_wavelength, vals, 'b-')
+    plt.plot([srf.start/1000, srf.end/1000], [avg, avg], 'b--')
+
+    srf = NewsatBlue()
+    x = srr.ipol_wavelength * 1000
+    vals = srf(x) * srr.ipol_irradiance
+    avg = np.dot(srf(x), srr.ipol_irradiance) / np.sum(srf(x))
+    plt.plot(srr.ipol_wavelength, vals, 'b-')
+    plt.plot([srf.start/1000, srf.end/1000], [avg, avg], 'bx-')
+
+    srf = NewsatRed()
+    x = srr.ipol_wavelength * 1000
+    vals = srf(x) * srr.ipol_irradiance
+    avg = np.dot(srf(x), srr.ipol_irradiance) / np.sum(srf(x))
+    plt.plot(srr.ipol_wavelength, vals, 'r-')
+    plt.plot([srf.start/1000, srf.end/1000], [avg, avg], 'rx-')
 
 # plot existing csv files
 if (0):

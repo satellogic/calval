@@ -6,10 +6,12 @@ from collections import namedtuple
 import tarfile
 
 import dateutil.parser
+import numpy as np
 from calval.geometry import IncidenceAngle
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
 from calval.landsat_mtl import read_mtl
+from calval.sun_position import SunPosition
 
 _site_prs = {
     'baotou': ['128032', '127032'],
@@ -19,6 +21,8 @@ _site_prs = {
 
 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7',
          'B8', 'B9', 'B10', 'B11', 'BQA']
+
+band_index = {'B{}'.format(i+1): i for i in range(11)}
 
 l2_bands = [
     'sr_band1', 'sr_band2', 'sr_band3', 'sr_band4', 'sr_band5', 'sr_band6', 'sr_band7',
@@ -56,6 +60,8 @@ class LandsatSceneData(SceneData):
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self._set_l1_sceneinfo()
+        if 'toa' in self.products:
+            self.products.append('irradiance')
 
     def _set_l1_sceneinfo(self):
         paths = glob.glob(os.path.join(self.path, self.sceneinfo.l1_mtl_filename()))
@@ -73,6 +79,10 @@ class LandsatSceneData(SceneData):
         timestamp = dateutil.parser.parse(
             data['DATE_ACQUIRED'].strftime('%Y-%m-%d') + 'T' + data['SCENE_CENTER_TIME'])
         self.timestamp = timestamp
+        self.corners = [(data['CORNER_{}_LON_PRODUCT'.format(x)], data['CORNER_{}_LAT_PRODUCT'.format(x)])
+                        for x in ['UL', 'UR', 'LR', 'LL']]
+        self.center = tuple(np.average(self.corners, axis=0))
+        self.center_sunpos = SunPosition(self.center[0], self.center[1], 0)
 
         data = meta['RADIOMETRIC_RESCALING']
         scalings = []
@@ -91,6 +101,7 @@ class LandsatSceneData(SceneData):
         for attr in ['roll_angle', 'earth_sun_distance', 'cloud_cover', 'cloud_cover_land']:
             setattr(self, attr, data[attr.upper()])
         self.sun_average_angle = IncidenceAngle(data['SUN_AZIMUTH'], data['SUN_ELEVATION'])
+        self.sun_distance = data['EARTH_SUN_DISTANCE']
         # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
         # For accurate computation, need the Azimuth and the Roll
         # * "Positive roll is to the port side of the spacecraft and the negative roll is to the starboard side"
@@ -98,6 +109,19 @@ class LandsatSceneData(SceneData):
         # * Azimuth can be computed from image corners
         #   https://gis.stackexchange.com/questions/98425/calculate-actual-landsat-image-corner-coordinates-to-derive-azimuth-heading?rq=1
         self.sat_average_angle = IncidenceAngle(180, 90)
+
+    def get_scale(self, band, product):
+        if product not in self.products:
+            raise ValueError('not available')
+        if product == 'sr':
+            return _scale_values['sr']
+
+        assert hasattr(self, 'l1_scalings')
+        band_ind = band_index[self.sceneinfo.band_name(band)]
+        scaling = self.l1_scalings[{'toa': 0, 'irradiance': 1}[product]][band_ind]
+        if product == 'toa':
+            assert scaling == _scale_values['toa']
+        return scaling
 
 
 class LandsatSceneInfo(SceneInfo):

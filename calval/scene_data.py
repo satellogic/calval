@@ -25,6 +25,7 @@ class SceneData(ABC):
         assert os.path.isdir(path)
         self.sceneinfo = sceneinfo
         self.path = path
+        self.products = [self.sceneinfo.product]
 
     @classmethod
     def from_sceneinfo(cls, sceneinfo, path=None):
@@ -44,12 +45,17 @@ class SceneData(ABC):
             path = paths[0]
         return path
 
-    def extract_values(self, aoi, bands=band_names):
+    def get_scale(self, band, product):
+        return self.sceneinfo.get_scale(band)
+
+    def extract_values(self, aoi, bands=band_names, product=None):
+        if product is None:
+            product = self.products[0]
         row = OrderedDict()
         for band in bands:
             path = self.get_band_path(band)
             raster = tl.georaster.GeoRaster2.open(path)
-            scale = self.sceneinfo.get_scale(band)
+            scale = self.get_scale(band, product)
             aoi_raster = raster.crop(aoi).mask(aoi)
             img = aoi_raster.image * scale.multiply + scale.add
             med, avg, std = _stats(img)
