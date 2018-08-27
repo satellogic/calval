@@ -3,7 +3,6 @@ import re
 
 import matplotlib.pyplot as plt
 import pandas as pd
-# plt.switch_backend('Agg')
 
 
 band_names = ['B', 'G', 'R', 'NIR']

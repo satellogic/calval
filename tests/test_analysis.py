@@ -5,6 +5,7 @@ from datetime import datetime
 
 import numpy as np
 
+import calval.batch_plot  # noqa: F401
 from radcalnet.site_measurements import SiteMeasurements
 from calval.satellites.srf import SRF, Sentinel2Green, Sentinel2Blue
 from calval.analysis import integrate, plot
