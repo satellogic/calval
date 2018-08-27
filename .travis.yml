@@ -12,7 +12,7 @@ matrix:
 
 install:
     - "pip install -r requirements-build.txt"
-    - "pip install --editable ."
+    - "pip install --process-dependency-links --editable ."
 
 script:
     - "pycodestyle"
