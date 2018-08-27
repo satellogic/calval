@@ -1,4 +1,8 @@
-import math
+try:
+    from math import isclose
+except ImportError:
+    def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
 class IncidenceAngle:
@@ -19,8 +23,8 @@ class IncidenceAngle:
         return str((self.azimuth, self.elevation))
 
     def isclose(self, other, accuracy):
-        eq = (math.isclose(self.azimuth, other.azimuth, abs_tol=accuracy) and
-              math.isclose(self.elevation, other.elevation, abs_tol=accuracy))
+        eq = (isclose(self.azimuth, other.azimuth, abs_tol=accuracy) and
+              isclose(self.elevation, other.elevation, abs_tol=accuracy))
         return eq
 
     def __eq__(self, other):
