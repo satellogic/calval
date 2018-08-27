@@ -16,8 +16,9 @@ def test_srf_interpolates_correctly():
     assert srf(start + 2.5) == .75 * response[0] + .25 * response[1]
     assert np.allclose(srf([start, end]), [response[0], response[-1]])
     assert srf.spacing == 10
-    assert np.isnan(srf(start - 1))
-    assert np.isnan(srf(end + 1))
+    assert np.isnan(srf(start - 1, outside_value=np.nan))
+    assert np.isnan(srf(end + 1, outside_value=np.nan))
+    assert np.allclose([srf(start-1), srf(end+1)], 0)
 
 
 def test_basic():

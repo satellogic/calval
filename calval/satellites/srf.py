@@ -26,13 +26,13 @@ class SRF:
         self.satellite = satellite or ''
         self.band = band or ''
 
-    def __call__(self, wavelength):
+    def __call__(self, wavelength, outside_value=0.0):
         """
         calculate SRF at specified wavelength (using linear interpolation).
         :param wavelength: single value or array. in [nm]
-        :return: single value or array of responses. returns np.nan if outside the range
+        :return: single value or array of responses. returns `outside_value` if outside the range
         """
-        return np.interp(wavelength, self.wavelengths, self.response, left=np.nan, right=np.nan)
+        return np.interp(wavelength, self.wavelengths, self.response, left=outside_value, right=outside_value)
 
     @property
     def spacing(self):
