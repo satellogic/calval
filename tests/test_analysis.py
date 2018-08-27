@@ -30,7 +30,6 @@ def test_exatmospheric_irradiance():
     for i, srf_class in enumerate([Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir]):
         irradiance = exatmospheric_irradiance(srf_class())
         ref_value = landsat_irradiances[i]
-        print(irradiance, ref_value, (irradiance - ref_value) / ref_value)
         assert irradiance == pytest.approx(ref_value, rel=0.03)
 
 
