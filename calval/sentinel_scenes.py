@@ -9,6 +9,8 @@ from calval.geometry import IncidenceAngle
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
 from calval.sentinel_xml import parse_tile_metadata
+from calval.satellites.srf import Sentinel2Blue, Sentinel2Green, Sentinel2Red
+from calval.analysis import exatmospheric_irradiance
 
 _product_names = {
     'MSIL1C': 'toa',
@@ -55,6 +57,13 @@ sentinelid = collections.namedtuple(
 
 
 class SentinelSceneData(SceneData):
+    band_ex_irradiance = {
+        _band_aliases['B']: exatmospheric_irradiance(Sentinel2Blue()),
+        _band_aliases['G']: exatmospheric_irradiance(Sentinel2Green()),
+        _band_aliases['R']: exatmospheric_irradiance(Sentinel2Red()),
+        # _band_aliases['NIR']: exatmospheric_irradiance(Sentinel2Nir()),
+    }
+
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self.granule = self.sceneinfo._get_granule()
@@ -83,6 +92,10 @@ class SentinelSceneData(SceneData):
         sun_zenith = metadata['Geometric_Info']['Tile_Angles']['Mean_Sun_Angle']['ZENITH_ANGLE']
         self.sun_average_angle = IncidenceAngle(sun_azimuth, 90 - sun_zenith)
 
+    def get_scale(self, band, product):
+        """ TODO: compute from metadata """
+        return _scale_values[product]
+
 
 class SentinelSceneInfo(SceneInfo):
     archive_suffix = '.zip'
@@ -100,6 +113,7 @@ class SentinelSceneInfo(SceneInfo):
         self.tile_id = data.box
         self.timestamp = dt.datetime.strptime(data.captime, self.date_fmt)
         self.product = _product_names[data.product]
+        self.products = [self.product]
 
     @property
     def extract_archive(self):
@@ -141,10 +155,6 @@ class SentinelSceneInfo(SceneInfo):
 
     def band_name(self, band):
         return _band_aliases.get(band, band)
-
-    def get_scale(self, band):
-        """ TODO: compute from metadata """
-        return _scale_values[self.product]
 
     def _get_granule(self):
         path = os.path.join(self.scene_path(), 'GRANULE')

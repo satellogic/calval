@@ -1,11 +1,15 @@
 import os
 import glob
+import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 import numpy as np
 import telluric as tl
 from calval.scene_info import SceneInfo
 from calval.sat_measurements import band_names
+
+
+logger = logging.getLogger(__name__)
 
 
 def _stats(img):
@@ -25,7 +29,6 @@ class SceneData(ABC):
         assert os.path.isdir(path)
         self.sceneinfo = sceneinfo
         self.path = path
-        self.products = [self.sceneinfo.product]
 
     @classmethod
     def from_sceneinfo(cls, sceneinfo, path=None):
@@ -45,12 +48,9 @@ class SceneData(ABC):
             path = paths[0]
         return path
 
-    def get_scale(self, band, product):
-        return self.sceneinfo.get_scale(band)
-
     def extract_values(self, aoi, bands=band_names, product=None):
         if product is None:
-            product = self.products[0]
+            product = self.sceneinfo.product
         row = OrderedDict()
         for band in bands:
             path = self.get_band_path(band)
@@ -59,8 +59,24 @@ class SceneData(ABC):
             aoi_raster = raster.crop(aoi).mask(aoi)
             img = aoi_raster.image * scale.multiply + scale.add
             med, avg, std = _stats(img)
-            print('--->', band, med, avg, std)
+            logger.debug('extracted values: med=%s, avg=%s, std=%s', med, avg, std)
             row['{}_median'.format(band)] = med
             row['{}_average'.format(band)] = avg
             row['{}_std'.format(band)] = std
+        return row
+
+    def extract_computed_toa(self, aoi, bands=band_names, corrected=False):
+        irradiance_row = self.extract_values(aoi, bands, 'irradiance')
+        if corrected:
+            irradiance_func = self.center_sunpos.direct_horizontal_irradiance
+        else:
+            irradiance_func = self.center_sunpos.direct_normal_irradiance
+        row = OrderedDict()
+        for band in bands:
+            bandname = self.sceneinfo.band_name(band)
+            input_radiance = irradiance_func(
+                self.timestamp, base_flux=self.band_ex_irradiance[bandname])
+            for stat in ['median', 'average', 'std']:
+                prop_name = '{}_{}'.format(band, stat)
+                row[prop_name] = np.pi * irradiance_row[prop_name] / input_radiance
         return row

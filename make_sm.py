@@ -1,3 +1,4 @@
+import logging
 from calval.scene_info import SceneInfo
 # Import provider module to enable the factory mechanism
 import calval.sentinel_scenes  # noqa: F401
@@ -5,6 +6,13 @@ import calval.landsat_scenes  # noqa: F401
 from calval.scene_utils import make_sat_measurements
 from calval.sat_measurements import SatMeasurements
 from calval.scene_data import SceneData
+
+
+logger = logging.getLogger()
+logger.getChild('calval').setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('[%(levelname)-4s] %(name)-4s: %(message)s'))
+logger.addHandler(handler)
 
 
 def get_filenames():
@@ -25,6 +33,23 @@ if (1):
     sm1.plot()
     # df.to_csv('{}_{}_landsat8.csv'.format(site_name, product))
     # df.to_csv('{}_{}_sentinel2.csv'.format(site_name, product))
+if (1):
+    # Note: Irradiance only available for landsat
+    product = 'irradiance'
+    # sm1 = make_sat_measurements(scene_infos, site_name, product)
+    sm3 = make_sat_measurements(filenames, site_name, product)
+    print(sm3.df)
+    sm3.plot()
+
+    sm4 = make_sat_measurements(filenames, site_name, 'computed_toa')
+    print(sm4.df)
+    fig = sm4.plot(legend_label='calc')
+    sm1_ls = make_sat_measurements(filenames, site_name, 'toa', provider='landsat8')
+    sm1_ls.plot(styles={'landsat8': '+--'}, fig=fig)
+
+    sm5 = make_sat_measurements(filenames, site_name, 'computed_toa_corrected')
+    print(sm5.df)
+    sm5.plot()
 if (1):
     product = 'sr'
     sm2 = make_sat_measurements(filenames, site_name, product)
@@ -70,6 +95,7 @@ if (1):
     print('ls l1 roll:', scene.roll_angle)
     print('ls l1 esd:', scene.earth_sun_distance)
     print('ls l1 cloud cover:', scene.cloud_cover)
+    print('ls l1 satellite coords:', scene.sat_coords)
     scene2 = SceneData.from_sceneinfo(ls_l2[0])
     scene2._read_l1_metadata()
     print('ls l1 timestamp:', scene2.timestamp)
@@ -80,7 +106,7 @@ if (1):
     print('ls l2 sat angle:', scene2.sat_average_angle)
 
 # testing stuff (remove that)
-if (1):
+if (0):
     import numpy as np
     import matplotlib.pyplot as plt
     from calval.satellites.srf import Sentinel2Green, Sentinel2Red, Landsat8Blue, NewsatBlue, NewsatRed

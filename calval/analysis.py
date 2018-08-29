@@ -23,7 +23,8 @@ def integrate(site_measurements, srf):
 
 def exatmospheric_irradiance(srf, dlambda_nm=0.5, start_nm=200.0, end_nm=2000.0):
     """
-    Compute the exatmospheric solar irradiance at 1au of given SRF
+    Compute the exatmospheric solar irradiance of some sensor (band) at 1a.u.
+    :param srf: SRF
     `dlambda_nm`, `start_nm`, `end_nm`: interpolation parameters for the solar spectrum
     :return: band irradiance at 1au, in [W/(m^2 um)]
     """
