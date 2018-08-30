@@ -18,7 +18,7 @@ def read_mtl(path):
             val = line.strip()
             if val.endswith(')'):
                 val = unfinished_list_val + val
-                context[tag] = eval('[{}]'.format(val[1:-1]))
+                context[tag] = eval('[{}]'.format(val[1:-1]))  # noqa: F821
                 unfinished_list_val = None
             else:
                 assert val.endswith(',')

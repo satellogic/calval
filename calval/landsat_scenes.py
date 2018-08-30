@@ -11,7 +11,7 @@ from calval.geometry import IncidenceAngle
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
 from calval.landsat_mtl import read_mtl, ephemeris_df
-from calval.sun_position import SunPosition
+from calval.sun_locator import SunLocator
 from calval.satellites.srf import Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir
 from calval.analysis import exatmospheric_irradiance
 
@@ -92,7 +92,7 @@ class LandsatSceneData(SceneData):
         self.corners = [(data['CORNER_{}_LON_PRODUCT'.format(x)], data['CORNER_{}_LAT_PRODUCT'.format(x)])
                         for x in ['UL', 'UR', 'LR', 'LL']]
         self.center = tuple(np.average(self.corners, axis=0))
-        self.center_sunpos = SunPosition(self.center[0], self.center[1], 0)
+        self.center_sunpos = SunLocator(self.center[0], self.center[1], 0)
 
         data = meta['RADIOMETRIC_RESCALING']
         scalings = []

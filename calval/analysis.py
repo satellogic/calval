@@ -78,3 +78,26 @@ def plot(types, site_measurements, srfs, with_errors=True, fig=None, show=True):
     if show:
         plt.show()
     return fig
+
+
+def toa_irradiance_to_reflectance(irradiance, sun_band_flux, sun_locator, time, sat_angle=None,
+                                  ignore_sun_zenith=False):
+    """
+    Computes toa reflectance from toa_irradiance
+    :param irradiance: toa irradiance in [W/(m^2 nm sr)].
+    :param sun_band_flux: The sun spectral flux at 1au in [W/(m^2 nm)]
+       (to compute from band SRF, use the function `exatmospheric_irradiance`).
+    :param sun_locator: `SunLocator` object for the relevant location on earth.
+    :param time: timezone-aware datetime.
+    :param sat_angle: `IncidenceAngle` of satellite relative to the site.
+       if not specified, assume to be at zenith.
+    :param ignore_sun_zenith: If true, ignore the correction due to sun elevation.
+       This is used for comparing to the raw TOA values of Landsat8 L1C product
+    """
+    if ignore_sun_zenith:
+        sun_irrad = sun_locator.direct_normal_irradiance(time, base_flux=sun_band_flux)
+    else:
+        sun_irrad = sun_locator.direct_horizontal_irradiance(time, base_flux=sun_band_flux)
+    if sat_angle is not None:
+        sun_irrad = sun_irrad * np.sin(sat_angle.elevation * np.pi / 180)
+    return np.pi * irradiance / sun_irrad

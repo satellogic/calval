@@ -2,13 +2,13 @@ import datetime as dt
 import dateutil.parser
 import numpy as np
 from pytest import approx
-from calval.sun_position import SunPosition
+from calval.sun_locator import SunLocator
 
 UTC = dt.timezone.utc
 test_lat = 32.0627972
 test_lon = 34.8150253
 
-sunpos = SunPosition(test_lon, test_lat, 0)
+sunpos = SunLocator(test_lon, test_lat, 0)
 
 position_ref = [  # time, zenith, azimuth
     ('2018-08-01T07:00:00+03:00', 77.832660, 76.154671),

@@ -7,6 +7,7 @@ import numpy as np
 import telluric as tl
 from calval.scene_info import SceneInfo
 from calval.sat_measurements import band_names
+from calval.analysis import toa_irradiance_to_reflectance
 
 
 logger = logging.getLogger(__name__)
@@ -67,16 +68,14 @@ class SceneData(ABC):
 
     def extract_computed_toa(self, aoi, bands=band_names, corrected=False):
         irradiance_row = self.extract_values(aoi, bands, 'irradiance')
-        if corrected:
-            irradiance_func = self.center_sunpos.direct_horizontal_irradiance
-        else:
-            irradiance_func = self.center_sunpos.direct_normal_irradiance
+        ignore_sun_zenith = not corrected
         row = OrderedDict()
         for band in bands:
             bandname = self.sceneinfo.band_name(band)
-            input_radiance = irradiance_func(
-                self.timestamp, base_flux=self.band_ex_irradiance[bandname])
+            reflectance_per_unit = toa_irradiance_to_reflectance(
+                1.0, self.band_ex_irradiance[bandname], self.center_sunpos, self.timestamp,
+                ignore_sun_zenith=ignore_sun_zenith)
             for stat in ['median', 'average', 'std']:
                 prop_name = '{}_{}'.format(band, stat)
-                row[prop_name] = np.pi * irradiance_row[prop_name] / input_radiance
+                row[prop_name] = reflectance_per_unit * irradiance_row[prop_name]
         return row

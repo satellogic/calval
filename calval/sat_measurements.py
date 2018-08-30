@@ -90,7 +90,7 @@ class SatMeasurements:
         else:
             title = '{} {}'.format(self.site, self.product)
         plt.title(title)
-        plt.grid()
+        plt.grid(True)
         plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
         plt.tight_layout()
         return fig
