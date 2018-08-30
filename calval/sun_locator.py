@@ -1,5 +1,4 @@
 import datetime as dt
-from dateutil.tz import UTC
 import numpy as np
 import pysolar.solartime as stime
 from pysolar.solar import get_sun_earth_distance, get_position
@@ -7,7 +6,7 @@ from pysolar.tzinfo_check import check_aware_dt
 from calval.geometry import IncidenceAngle
 
 solar_constant = 1361.5  # from wikipedia
-_s2_julian_epoch_t = dt.datetime(1950, 1, 1, 0, 0, tzinfo=UTC).timestamp()
+_s2_julian_epoch_t = dt.datetime(1950, 1, 1, 0, 0, tzinfo=dt.timezone.utc).timestamp()
 
 
 @check_aware_dt('time')
