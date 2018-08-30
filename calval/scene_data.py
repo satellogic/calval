@@ -66,6 +66,21 @@ class SceneData(ABC):
             row['{}_std'.format(band)] = std
         return row
 
+    def extract_corrected_toa(self, aoi, bands=band_names):
+        """
+        In landsat, the toa values are not corrected for sun elevation
+        This corrects the sun-elevation dependance using the central
+        sun angle (for better accuracy use per-pixel sun position).
+        """
+        toa_row = self.extract_values(aoi, bands, 'toa')
+        factor = np.sin(self.sun_average_angle.elevation * np.pi / 180)
+        row = OrderedDict()
+        for band in bands:
+            for stat in ['median', 'average', 'std']:
+                prop_name = '{}_{}'.format(band, stat)
+                row[prop_name] = toa_row[prop_name] / factor
+        return row
+
     def extract_computed_toa(self, aoi, bands=band_names, corrected=False):
         irradiance_row = self.extract_values(aoi, bands, 'irradiance')
         ignore_sun_zenith = not corrected

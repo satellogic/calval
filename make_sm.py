@@ -28,7 +28,7 @@ if (1):
         print(info.archive_filename())
     product = 'toa'
     # sm1 = make_sat_measurements(scene_infos, site_name, product)
-    sm1 = make_sat_measurements(filenames, site_name, product)
+    sm1 = make_sat_measurements(filenames, site_name, product, correct_landsat_toa=True)
     print(sm1.df)
     sm1.plot()
     # df.to_csv('{}_{}_landsat8.csv'.format(site_name, product))
@@ -49,7 +49,9 @@ if (1):
 
     sm5 = make_sat_measurements(filenames, site_name, 'computed_toa_corrected')
     print(sm5.df)
-    sm5.plot()
+    fig = sm5.plot(legend_label='calc')
+    sm6 = make_sat_measurements(filenames, site_name, 'toa', provider='landsat8', correct_landsat_toa=True)
+    sm6.plot(styles={'landsat8': '+--'}, fig=fig)
 if (1):
     product = 'sr'
     sm2 = make_sat_measurements(filenames, site_name, product)

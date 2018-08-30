@@ -13,7 +13,8 @@ import calval.landsat_scenes  # noqa: F401
 logger = logging.getLogger(__name__)
 
 
-def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G', 'R', 'NIR'], provider=None):
+def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G', 'R', 'NIR'], provider=None,
+                          correct_landsat_toa=False):
     """
     Given a list of `scenes` (either filenames or SceneInfo objects), filter ther
     ones that match the given `site_name` and `product`, and build SatMeasurements object
@@ -53,7 +54,11 @@ def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G
         if product.startswith('computed_toa'):
             row.update(scenedata.extract_computed_toa(aoi, bands, compute_correction))
         else:
-            row.update(scenedata.extract_values(aoi, bands, product=product))
+            # TODO: move this if into LandsatSceneData.extract_values
+            if (correct_landsat_toa and sceneinfo.provider == 'landsat8' and product == 'toa'):
+                row.update(scenedata.extract_corrected_toa(aoi, bands))
+            else:
+                row.update(scenedata.extract_values(aoi, bands, product=product))
         rows.append(row)
     df = pd.DataFrame(rows)
     df = df.set_index('timestamp').sort_index()
