@@ -65,6 +65,13 @@ class LandsatSceneData(SceneData):
         _band_aliases['toa']['R']: exatmospheric_irradiance(Landsat8Red()),
         _band_aliases['toa']['NIR']: exatmospheric_irradiance(Landsat8Nir()),
     }
+    # calculated the following backwards from 4 scenes of negev
+    est_band_ex_irradiance = {
+        _band_aliases['toa']['B']: 2019.59,
+        _band_aliases['toa']['G']: 1861.06,
+        _band_aliases['toa']['R']: 1569.34,
+        _band_aliases['toa']['NIR']: 960.37,
+    }
 
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
@@ -112,6 +119,14 @@ class LandsatSceneData(SceneData):
             setattr(self, attr, data[attr.upper()])
         self.sun_average_angle = IncidenceAngle(data['SUN_AZIMUTH'], data['SUN_ELEVATION'])
         self.sun_distance = data['EARTH_SUN_DISTANCE']
+        # Compute estimates for sun spectral radiances [W/(m^2 um)]
+        esuns = []
+        for i in range(len(scalings)):
+            ratio = rad_scalings[i].multiply / scalings[i].multiply
+            # assert abs(rad_scalings[i].add / ratio - scalings[i].add) < 1e-5
+            esuns.append(ratio * np.pi * self.sun_distance ** 2)
+        self.estimated_esuns = esuns
+
         # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
         # For accurate computation, need the Azimuth and the Roll
         # * "Positive roll is to the port side of the spacecraft and the negative roll is to the starboard side"

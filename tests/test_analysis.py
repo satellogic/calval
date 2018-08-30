@@ -47,10 +47,10 @@ def test_plot():
 
 def test_toa_irradiance_to_reflectance():
     site_lon, site_lat = (35.0089, 30.1135)
-    site_locator = SunLocator(site_lon, site_lat)
-    # estimations for SRF of Landsat8 Blue, Green, Red:
-    band_sun_flux = [1969.0687347104756, 1847.8717607754973, 1569.4599266109901]
-    # some data based on landsat products of negev site
+    locator = SunLocator(site_lon, site_lat)
+    # estimations from SRF of Landsat8 Blue, Green, Red:
+    band_sun_flux = [1969.07, 1847.87, 1569.46]
+    # some data from landsat products of negev site
     times = [
         dt.datetime(*x, tzinfo=dt.timezone.utc) for x in [
             (2018, 5, 15, 8, 10, 30), (2018, 5, 31, 8, 10, 17),
@@ -66,11 +66,11 @@ def test_toa_irradiance_to_reflectance():
     sunflux = band_sun_flux[0]
     irradiance = band_irradiance[0]
     ref_default = toa_irradiance_to_reflectance(
-            irradiance, sunflux, site_locator, time)
+            irradiance, sunflux, locator, time)
 
     def calc_at(elevation):
         return toa_irradiance_to_reflectance(
-            irradiance, sunflux, site_locator, time, IncidenceAngle(0, elevation))
+            irradiance, sunflux, locator, time, IncidenceAngle(0, elevation))
 
     reflectance = calc_at(90)
     assert reflectance == pytest.approx(ref_default)
@@ -81,20 +81,20 @@ def test_toa_irradiance_to_reflectance():
     time = times[0]
     for i, sunflux in enumerate(band_sun_flux):
         reflectance = toa_irradiance_to_reflectance(
-            band_irradiance[i], sunflux, site_locator, time,
+            band_irradiance[i], sunflux, locator, time,
             ignore_sun_zenith=True)
         assert reflectance == pytest.approx(band_reflectance[i], rel=0.03)
         reflectance_correct = toa_irradiance_to_reflectance(
-            band_irradiance[i], sunflux, site_locator, time)
+            band_irradiance[i], sunflux, locator, time)
         assert reflectance < reflectance_correct < 1.0
 
     # verify blue band in several products
     sunflux = band_sun_flux[0]
     for i, time in enumerate(times):
         reflectance = toa_irradiance_to_reflectance(
-            blue_irradiance[i], sunflux, site_locator, time,
+            blue_irradiance[i], sunflux, locator, time,
             ignore_sun_zenith=True)
         assert reflectance == pytest.approx(blue_reflectance[i], rel=0.03)
         reflectance_correct = toa_irradiance_to_reflectance(
-            blue_irradiance[i], sunflux, site_locator, time)
+            blue_irradiance[i], sunflux, locator, time)
         assert reflectance < reflectance_correct < 1.0
