@@ -67,7 +67,8 @@ class SatMeasurements:
         self.df.to_csv(path)
 
     def plot(self, band_names=band_names,
-             band_colors=band_colors, styles=provider_styles, fig=None):
+             band_colors=band_colors, styles=provider_styles,
+             fig=None, legend_label=None):
         if fig is None:
             fig = plt.figure()
         for provider in provider_styles.keys():
@@ -78,7 +79,10 @@ class SatMeasurements:
                     std = provider_df['{}_std'.format(band)]
                     artists = plt.errorbar(chan.index.values, chan.values, yerr=std,
                                            fmt=band_colors[i] + styles[provider])
-                    artists.lines[0].set_label('{}_{}'.format(provider, band))
+                    label = '{}_{}'.format(provider, band)
+                    if legend_label is not None:
+                        label = '{} {}'.format(label, legend_label)
+                    artists.lines[0].set_label(label)
 
         fig.autofmt_xdate()
         if self.label:
@@ -86,7 +90,7 @@ class SatMeasurements:
         else:
             title = '{} {}'.format(self.site, self.product)
         plt.title(title)
-        plt.grid()
+        plt.grid(True)
         plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
         plt.tight_layout()
         return fig

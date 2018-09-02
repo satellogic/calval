@@ -1,5 +1,4 @@
 import datetime as dt
-from dateutil.tz import UTC
 import numpy as np
 import pysolar.solartime as stime
 from pysolar.solar import get_sun_earth_distance, get_position
@@ -7,7 +6,7 @@ from pysolar.tzinfo_check import check_aware_dt
 from calval.geometry import IncidenceAngle
 
 solar_constant = 1361.5  # from wikipedia
-_s2_julian_epoch_t = dt.datetime(1950, 1, 1, 0, 0, tzinfo=UTC).timestamp()
+_s2_julian_epoch_t = dt.datetime(1950, 1, 1, 0, 0, tzinfo=dt.timezone.utc).timestamp()
 
 
 @check_aware_dt('time')
@@ -31,9 +30,10 @@ def s2_earth_sun_distance(timestamp, julian_delta=3):
     return 1 - 0.01673 * np.cos(0.0172 * (s2_julian_day(timestamp, julian_delta) - 2))
 
 
-class SunPosition:
+class SunLocator:
     """
-    Compute sun position and related attributes, relative to a fixed position on earth.
+    Compute sun position, distance and related attributes, relative to a fixed
+    position on earth.
     Methods of this class take as input a timezone-aware datetime object.
     """
     def __init__(self, longitude, latitude, elevation=0):

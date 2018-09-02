@@ -49,6 +49,9 @@ class SceneInfo:
         scenes=None,
         archives=calval.config.dl_dir
     )
+    product_units = {
+        'sr': None, 'toa': None
+    }
 
     def __init__(self, config):
         if config is not None:

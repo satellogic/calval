@@ -6,10 +6,14 @@ from collections import namedtuple
 import tarfile
 
 import dateutil.parser
+import numpy as np
 from calval.geometry import IncidenceAngle
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
-from calval.landsat_mtl import read_mtl
+from calval.landsat_mtl import read_mtl, ephemeris_df
+from calval.sun_locator import SunLocator
+from calval.satellites.srf import Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir
+from calval.analysis import exatmospheric_irradiance
 
 _site_prs = {
     'baotou': ['128032', '127032'],
@@ -19,6 +23,8 @@ _site_prs = {
 
 bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7',
          'B8', 'B9', 'B10', 'B11', 'BQA']
+
+band_index = {'B{}'.format(i+1): i for i in range(11)}
 
 l2_bands = [
     'sr_band1', 'sr_band2', 'sr_band3', 'sr_band4', 'sr_band5', 'sr_band6', 'sr_band7',
@@ -53,6 +59,20 @@ def _displayid_str(displayid):
 
 
 class LandsatSceneData(SceneData):
+    band_ex_irradiance = {
+        _band_aliases['toa']['B']: exatmospheric_irradiance(Landsat8Blue()),
+        _band_aliases['toa']['G']: exatmospheric_irradiance(Landsat8Green()),
+        _band_aliases['toa']['R']: exatmospheric_irradiance(Landsat8Red()),
+        _band_aliases['toa']['NIR']: exatmospheric_irradiance(Landsat8Nir()),
+    }
+    # calculated the following backwards from 4 scenes of negev
+    est_band_ex_irradiance = {
+        _band_aliases['toa']['B']: 2019.59,
+        _band_aliases['toa']['G']: 1861.06,
+        _band_aliases['toa']['R']: 1569.34,
+        _band_aliases['toa']['NIR']: 960.37,
+    }
+
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self._set_l1_sceneinfo()
@@ -62,6 +82,9 @@ class LandsatSceneData(SceneData):
         assert len(paths) == 1, 'No unique MTL file found'
         l1_id = os.path.basename(paths[0])[:-len('_MTL.txt')]
         self.l1_sceneinfo = SceneInfo.from_foldername(l1_id)
+
+    def _ang_path(self):
+        return os.path.join(self.path, self.l1_sceneinfo.l1_ang_filename())
 
     def _mtl_path(self):
         return os.path.join(self.path, self.l1_sceneinfo.l1_mtl_filename())
@@ -73,6 +96,10 @@ class LandsatSceneData(SceneData):
         timestamp = dateutil.parser.parse(
             data['DATE_ACQUIRED'].strftime('%Y-%m-%d') + 'T' + data['SCENE_CENTER_TIME'])
         self.timestamp = timestamp
+        self.corners = [(data['CORNER_{}_LON_PRODUCT'.format(x)], data['CORNER_{}_LAT_PRODUCT'.format(x)])
+                        for x in ['UL', 'UR', 'LR', 'LL']]
+        self.center = tuple(np.average(self.corners, axis=0))
+        self.center_sunpos = SunLocator(self.center[0], self.center[1], 0)
 
         data = meta['RADIOMETRIC_RESCALING']
         scalings = []
@@ -85,12 +112,21 @@ class LandsatSceneData(SceneData):
             rad_scalings.append(scaling(
                 data['RADIANCE_MULT_BAND_{}'.format(iband+1)],
                 data['RADIANCE_ADD_BAND_{}'.format(iband+1)]))
-        self.l1_scalings = scalings, rad_scalings
+        self.l1_scalings = {'toa': scalings, 'irradiance': rad_scalings}
 
         data = meta['IMAGE_ATTRIBUTES']
         for attr in ['roll_angle', 'earth_sun_distance', 'cloud_cover', 'cloud_cover_land']:
             setattr(self, attr, data[attr.upper()])
         self.sun_average_angle = IncidenceAngle(data['SUN_AZIMUTH'], data['SUN_ELEVATION'])
+        self.sun_distance = data['EARTH_SUN_DISTANCE']
+        # Compute estimates for sun spectral radiances [W/(m^2 um)]
+        esuns = []
+        for i in range(len(scalings)):
+            ratio = rad_scalings[i].multiply / scalings[i].multiply
+            # assert abs(rad_scalings[i].add / ratio - scalings[i].add) < 1e-5
+            esuns.append(ratio * np.pi * self.sun_distance ** 2)
+        self.estimated_esuns = esuns
+
         # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
         # For accurate computation, need the Azimuth and the Roll
         # * "Positive roll is to the port side of the spacecraft and the negative roll is to the starboard side"
@@ -98,12 +134,34 @@ class LandsatSceneData(SceneData):
         # * Azimuth can be computed from image corners
         #   https://gis.stackexchange.com/questions/98425/calculate-actual-landsat-image-corner-coordinates-to-derive-azimuth-heading?rq=1
         self.sat_average_angle = IncidenceAngle(180, 90)
+        self.angle_metadata = meta = read_mtl(self._ang_path())
+        df = ephemeris_df(meta)
+        self.sat_coords = list(df.iloc[df.index.get_loc(self.timestamp, method='nearest')])
+        # TODO: get view angles per point from angles file
+
+    def get_scale(self, band, product):
+        if product not in self.sceneinfo.products:
+            raise ValueError('not available')
+        if product == 'sr':
+            # TODO: compute from metadata
+            return _scale_values['sr']
+        else:
+            # L1
+            assert hasattr(self, 'l1_scalings')
+            band_ind = band_index[self.sceneinfo.band_name(band)]
+            scaling = self.l1_scalings[product][band_ind]
+            if product == 'toa':
+                assert scaling == _scale_values['toa']
+            return scaling
 
 
 class LandsatSceneInfo(SceneInfo):
     archive_suffix = '.tar.gz'
     provider = 'landsat8'
     scenedata_class = LandsatSceneData
+    product_units = {
+        'sr': None, 'toa': None, 'irradiance': 'W/(m^2 um sr)'
+    }
 
     def __init__(self, data, config=None):
         super().__init__(config)
@@ -113,6 +171,9 @@ class LandsatSceneInfo(SceneInfo):
         self.tile_id = data.pr
         self.timestamp = dt.datetime.strptime(data.starttime, '%Y%m%d')
         self.product = data.product
+        self.products = [self.product]
+        if self.product == 'toa':
+            self.products.append('irradiance')
 
     @property
     def extract_archive(self):
@@ -182,10 +243,6 @@ class LandsatSceneInfo(SceneInfo):
     def band_name(self, band):
         return _band_aliases[self.product].get(band, band)
 
-    def get_scale(self, band):
-        """ TODO: compute from metadata """
-        return _scale_values[self.product]
-
     def get_band_path(self, band):
         band = self.band_name(band)
         if self.product == 'toa':
@@ -200,3 +257,6 @@ class LandsatSceneInfo(SceneInfo):
 
     def l1_mtl_filename(self):
         return _displayid_str(self._data) + '_MTL.txt'
+
+    def l1_ang_filename(self):
+        return _displayid_str(self._data) + '_ANG.txt'
