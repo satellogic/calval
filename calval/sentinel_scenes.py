@@ -124,24 +124,24 @@ class SentinelSceneInfo(SceneInfo):
         return extract
 
     @classmethod
-    def from_foldername(cls, fname):
+    def from_foldername(cls, fname, config):
         if not fname.endswith(cls.folder_suffix):
             return None
         sid = fname[:-len(cls.folder_suffix)]
         if len(sid.split('_')) != 7:
             return None
         data = sentinelid(*sid.split('_'))
-        return cls(data)
+        return cls(data, config)
 
     @classmethod
-    def from_filename(cls, fname):
+    def from_filename(cls, fname, config):
         if not fname.endswith(cls.archive_suffix):
             return None
         sid = fname[:-len(cls.archive_suffix)]
         if len(sid.split('_')) != 7:
             return None
         data = sentinelid(*sid.split('_'))
-        return cls(data)
+        return cls(data, config)
 
     def archive_filename(self):
         return self.scene_id + self.archive_suffix

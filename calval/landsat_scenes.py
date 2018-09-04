@@ -81,7 +81,7 @@ class LandsatSceneData(SceneData):
         paths = glob.glob(os.path.join(self.path, self.sceneinfo.l1_mtl_filename()))
         assert len(paths) == 1, 'No unique MTL file found'
         l1_id = os.path.basename(paths[0])[:-len('_MTL.txt')]
-        self.l1_sceneinfo = SceneInfo.from_foldername(l1_id)
+        self.l1_sceneinfo = SceneInfo.from_foldername(l1_id, self.sceneinfo.config)
 
     def _ang_path(self):
         return os.path.join(self.path, self.l1_sceneinfo.l1_ang_filename())
@@ -184,7 +184,7 @@ class LandsatSceneInfo(SceneInfo):
         return extract
 
     @classmethod
-    def from_l2_sceneid(cls, sid):
+    def from_l2_sceneid(cls, sid, config):
         flds = sid.split('-')
         if len(flds) != 2:
             return None
@@ -200,35 +200,35 @@ class LandsatSceneInfo(SceneInfo):
             sceneinfo = sceneinfo[fldlen:]
         data[fields.index('product')] = 'sr'
         data[fields.index('scene_id')] = sid
-        return cls(displayid(*data))
+        return cls(displayid(*data), config)
 
     @classmethod
-    def from_foldername(cls, fname):
+    def from_foldername(cls, fname, config):
         if not fname.startswith('LC08'):
             return None
         if '_' not in fname:
-            return cls.from_l2_sceneid(fname)
+            return cls.from_l2_sceneid(fname, config)
         flds = fname.split('_')
         if len(flds) != 7:
             return None
         flds = flds + ['toa', fname]
         data = displayid(*flds)
-        return cls(data)
+        return cls(data, config)
 
     @classmethod
-    def from_filename(cls, fname):
+    def from_filename(cls, fname, config):
         if not fname.endswith(cls.archive_suffix):
             return None
         sid = fname[:-len(cls.archive_suffix)]
         if '_' not in sid:
-            return cls.from_l2_sceneid(sid)
+            return cls.from_l2_sceneid(sid, config)
 
         flds = sid.split('_')
         if len(flds) != 7:
             return None
         flds = flds + ['toa', sid]
         data = displayid(*flds)
-        return cls(data)
+        return cls(data, config)
 
     def archive_filename(self):
         return self.scene_id + self.archive_suffix

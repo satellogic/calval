@@ -64,17 +64,17 @@ class SceneInfo:
         return path
 
     @classmethod
-    def from_filename(cls, filename):
+    def from_filename(cls, filename, config=None):
         for c in cls.__subclasses__():
-            scene_info = c.from_filename(filename)
+            scene_info = c.from_filename(filename, config)
             if scene_info is not None:
                 return scene_info
         raise ValueError('Unknown filename format: {}'.format(filename))
 
     @classmethod
-    def from_foldername(cls, foldername):
+    def from_foldername(cls, foldername, config=None):
         for c in cls.__subclasses__():
-            scene_info = c.from_foldername(foldername)
+            scene_info = c.from_foldername(foldername, config)
             if scene_info is not None:
                 return scene_info
         raise ValueError('Unknown foldername format: {}'.format(foldername))
