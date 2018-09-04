@@ -4,8 +4,8 @@ import numpy as np
 
 import calval.batch_plot  # noqa: F401
 from calval.satellites.srf import \
-    (SRF, PerfectSRF, Sentinel2Red, Sentinel2Green, Sentinel2Blue, plot_srfs,
-     Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir,
+    (SRF, PerfectSRF, Sentinel2Nir, Sentinel2Red, Sentinel2Green, Sentinel2Blue,
+     Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir, plot_srfs,
      NewsatBlue, NewsatGreen, NewsatRed, NewsatNir, NewsatPan)
 
 
@@ -28,6 +28,13 @@ def test_basic():
     assert perfect.bandwidth == 100
 
 
+def test_normalize_max():
+    for cls in NewsatBlue, NewsatGreen, NewsatRed, NewsatNir:
+        srf = cls()
+        srf.normalize_max()
+        assert np.max(srf.response) == pytest.approx(1.0)
+
+
 def test_as_dataframe():
     srf = Sentinel2Green()
     df = srf.as_dataframe()
@@ -39,6 +46,7 @@ def test_sentinel():
     assert Sentinel2Blue().center == pytest.approx(490, abs=10)
     assert Sentinel2Green().center == pytest.approx(560, abs=.10)
     assert Sentinel2Red().center == pytest.approx(665, abs=10)
+    assert Sentinel2Nir().center == pytest.approx(833, abs=10)
 
 
 def test_landsat():
@@ -64,4 +72,4 @@ def test_newsat():
 def test_plot():
     # checks plot_srf doesn't fail
     srfs = [Sentinel2Red(), Sentinel2Green(), Sentinel2Blue()]
-    plot_srfs(srfs, show=False)
+    plot_srfs(srfs, show=False, normalize_max=True)

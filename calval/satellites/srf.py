@@ -34,6 +34,13 @@ class SRF:
         """
         return np.interp(wavelength, self.wavelengths, self.response, left=outside_value, right=outside_value)
 
+    def normalize_max(self):
+        """
+        normalize the response such that maximum value will become 1.0
+        """
+        m = np.max(self.response)
+        self.response = self.response / m
+
     @property
     def spacing(self):
         return self.wavelengths[1] - self.wavelengths[0]
@@ -82,6 +89,22 @@ class Sentinel2Red(SRF):
                          [0.09225, 0.81775, 0.99038, 0.99545, 0.95701, 0.81417, 0.76998, 0.83083,
                           0.89627, 0.95593, 0.97240, 0.96571, 0.91448, 0.42297, 0.04189],
                          'sentinel2', 'red')
+
+
+class Sentinel2Nir(SRF):
+    def __init__(self):
+        # taken from https://github.com/robintw/Py6S/blob/master/Py6S/Params/wavelength.py#L649
+        super().__init__(775.0, 905.0,
+                         [0.01907, 0.07184, 0.20344, 0.51876, 0.81829, 0.97723,
+                          0.98521, 0.93118, 0.94128, 0.96391, 0.95901, 0.94414,
+                          0.94536, 0.93249, 0.90098, 0.85268, 0.80182, 0.74676,
+                          0.70867, 0.68623, 0.68265, 0.67363, 0.66081, 0.66119,
+                          0.68550, 0.73149, 0.77661, 0.78771, 0.77616, 0.75260,
+                          0.72059, 0.68338, 0.64934, 0.62319, 0.60432, 0.58934,
+                          0.58120, 0.58135, 0.58948, 0.59906, 0.60548, 0.61609,
+                          0.63744, 0.66329, 0.65992, 0.59970, 0.52641, 0.49782,
+                          0.52909, 0.51696, 0.32679, 0.11911, 0.03325],
+                         'sentinel2', 'nir')
 
 
 # Estimated Landsat SRF
@@ -272,7 +295,7 @@ class NewsatPan(SRF):
                          'newsat', 'pan')
 
 
-def plot_srfs(srfs, colors=band_colors, styles=satellite_styles, fig=None, title=None, show=False):
+def plot_srfs(srfs, colors=band_colors, styles=satellite_styles, fig=None, title=None, show=False, normalize_max=False):
     """
     plots multiple SRFs
     :param srfs: [SRF]
@@ -285,6 +308,9 @@ def plot_srfs(srfs, colors=band_colors, styles=satellite_styles, fig=None, title
     """
     if fig is None:
         fig = plt.figure()
+    if normalize_max:
+        for srf in srfs:
+            srf.normalize_max()
     for srf in srfs:
         df = srf.as_dataframe()
         if len(df) > 0:
