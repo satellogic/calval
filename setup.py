@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-version = '0.1.0.dev0'
+version = '0.1.1'
 
 proj_dir = os.path.abspath(os.path.dirname(__file__))
 reqs = [line.strip()
