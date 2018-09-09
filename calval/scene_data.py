@@ -85,22 +85,41 @@ class SceneData(ABC):
             path = paths[0]
         return path
 
-    def raster(self, band):
+    def raster(self, band, aoi=None):
+        """
+        get the raster for relevant band
+        `aoi` may be specified to avoid reading the whole raster
+        """
         path = self.get_band_path(band)
         raster = tl.georaster.GeoRaster2.open(path)
+        if aoi is not None:
+            raster = raster.crop(aoi)
         # both L8 and S2 use nodata=0, but do not mark it in the metadata, so telluric does not
         # load them properly. Fix that explicitly (mainly for landsat, as sentinel images do not
         # normally contain nodata pixels).
         raster = set_zero_nodata(raster)
+        if aoi is not None:
+            raster = raster.mask(aoi)
         return raster
+
+    def scale_image(self, image, band, product=None):
+        """
+        scale the image according to the appropriate scaling factor
+        from the metadata
+        """
+        if product is None:
+            product = self.sceneinfo.product
+        scale = self.get_scale(band, product)
+        return image * scale.multiply + scale.add
+
+    def float_image(self, band, product=None, aoi=None):
+        raster = self.raster(band, aoi)
+        return self.scale_image(raster.image, band, product)
 
     def normalized_raster(self, band, product=None):
         maxword = 1 << 16
-        if product is None:
-            product = self.sceneinfo.product
         raster = self.raster(band)
-        scale = self.get_scale(band, product)
-        float_img = raster.image * scale.multiply + scale.add
+        float_img = self.scale_image(raster.image, band, product)
         # solar irradiance for blue is around 2000 W/(m^2 um),
         # so reflected lambertian irrad can be upto ~ 640 W/(m^2 um sr)
         if product == 'irradiance':
@@ -112,14 +131,9 @@ class SceneData(ABC):
         return raster
 
     def extract_values(self, aoi, bands=band_names, product=None):
-        if product is None:
-            product = self.sceneinfo.product
         row = OrderedDict()
         for band in bands:
-            raster = self.raster(band)
-            scale = self.get_scale(band, product)
-            aoi_raster = raster.crop(aoi).mask(aoi)
-            img = aoi_raster.image * scale.multiply + scale.add
+            img = self.float_image(band, product, aoi)
             med, avg, std = _stats(img)
             logger.debug('extracted values: med=%s, avg=%s, std=%s', med, avg, std)
             row['{}_median'.format(band)] = med
