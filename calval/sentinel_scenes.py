@@ -67,6 +67,7 @@ class SentinelSceneData(SceneData):
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self.granule = self.sceneinfo._get_granule()
+        self._read_l1_metadata()
 
     def _mtd_path(self):
         return os.path.join(self.path, 'GRANULE', self.granule, 'MTD_TL.xml')

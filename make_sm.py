@@ -1,4 +1,6 @@
 import logging
+import numpy as np
+import telluric as tl
 from calval.scene_info import SceneInfo
 # Import provider module to enable the factory mechanism
 import calval.sentinel_scenes  # noqa: F401
@@ -19,13 +21,15 @@ def get_filenames():
     return [line.rstrip() for line in open('scene_list.txt')]
 
 
-if (1):
-    # satellites = #['landsat8', 'sentinel2']
-    site_name = 'negev'
+if (True):
     filenames = get_filenames()
     scene_infos = [SceneInfo.from_filename(scene) for scene in filenames]
     for info in scene_infos:
         print(info.archive_filename())
+
+if (1):
+    # satellites = #['landsat8', 'sentinel2']
+    site_name = 'negev'
     product = 'toa'
     # sm1 = make_sat_measurements(scene_infos, site_name, product)
     sm1 = make_sat_measurements(filenames, site_name, product, correct_landsat_toa=True)
@@ -64,29 +68,24 @@ if (1):
 
 # some metadata analysis (sentinel)
 if (1):
-    scene_infos = [SceneInfo.from_filename(scene) for scene in get_filenames()]
     s_l1 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'toa']
     s_l2 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'sr']
     scene = SceneData.from_sceneinfo(s_l1[0])
-    scene._read_l1_metadata()
     print('s2 l1 si timestamp:', scene.sceneinfo.timestamp)
     print('s2 l1 timestamp:', scene.timestamp)
     print('s2 l1 sun angle:', scene.sun_average_angle)
     print('s2 l1 sat angle:', scene.sat_average_angle)
     scene = SceneData.from_sceneinfo(s_l2[0])
-    scene._read_l1_metadata()
     print('s2 l2 timestamp:', scene.timestamp)
     print('s2 l2 sun angle:', scene.sun_average_angle)
     print('s2 l2 sat angle:', scene.sat_average_angle)
 
 # some metadata analysis (landsat)
 if (1):
-    scene_infos = [SceneInfo.from_filename(scene) for scene in get_filenames()]
     ls_l1 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'toa']
     ls_l2 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'sr']
     si = ls_l1[0]
     scene = SceneData.from_sceneinfo(si)
-    scene._read_l1_metadata()
     print('ls l1 si timestamp:', scene.sceneinfo.timestamp)
     print('ls l1 timestamp:', scene.timestamp)
     print('ls l1 sun angle:', scene.sun_average_angle)
@@ -99,7 +98,6 @@ if (1):
     print('ls l1 cloud cover:', scene.cloud_cover)
     print('ls l1 satellite coords:', scene.sat_coords)
     scene2 = SceneData.from_sceneinfo(ls_l2[0])
-    scene2._read_l1_metadata()
     print('ls l1 timestamp:', scene2.timestamp)
     print('ls l2 sun angle:', scene2.sun_average_angle)
     print('ls l2 computed sun angle:', scene2.center_sunpos.position(scene2.timestamp))
@@ -108,6 +106,41 @@ if (1):
     print('ls l2 sat angle:', scene2.sat_average_angle)
 
 # testing stuff (remove that)
+if (1):
+    scenes_l8 = [SceneData.from_sceneinfo(x) for x in scene_infos
+                 if x.provider == 'landsat8' and x.product == 'toa' and x.tile_id == '174039']
+    scene_l8 = scenes_l8[1]
+    # print('saving {}'.format(scene_l8.get_metadata_path('irradiance')))
+    # scene_l8.save_normalized(product='irradiance')
+    # print('saving {}'.format(scene_l8.get_metadata_path()))
+    # scene_l8.save_normalized()
+    scenes_s2 = [SceneData.from_sceneinfo(x) for x in scene_infos
+                 if x.provider == 'sentinel2' and x.product == 'toa' and x.tile_id == 'T36RXU']
+    scene_s2 = scenes_s2[6]
+    # print('saving {}'.format(scene_s2.get_metadata_path()))
+    # scene_s2.save_normalized()
+if (0):
+    pairs = {}
+    for band in ['G', 'B', 'R', 'NIR']:
+        print('saving band: {}'.format(band))
+        l8_tile = tl.GeoRaster2.open(scene_l8.get_normalized_path(band)).get_tile(2446, 1688, 12)
+        l8_tile.save('/tmp/l8_tile_{}.tif'.format(band), nodata=0)
+        s2_tile = tl.GeoRaster2.open(scene_s2.get_normalized_path(band)).get_tile(2446, 1688, 12)
+        s2_tile.save('/tmp/s2_tile_{}.tif'.format(band), nodata=0)
+        pairs[band] = [np.ravel(l8_tile.image[0]), np.ravel(s2_tile.image[0])]
+if (1):
+    import matplotlib.pyplot as plt
+    l8_tile = tl.GeoRaster2.open(scene_l8.get_normalized_path('B')).get_tile(2446, 1688, 12)
+    s2_tile = tl.GeoRaster2.open(scene_s2.get_normalized_path('B')).get_tile(2446, 1688, 12)
+    x, y = [np.ma.ravel(x.image) / 65536.0 for x in [l8_tile, s2_tile]]
+    plt.figure()
+    plt.plot(x, y, ',')
+    plt.plot([0.15, 0.35], [0.15, 0.35], 'k-')
+    plt.xlabel('l8')
+    plt.ylabel('s2')
+    plt.grid(True)
+
+# some spectral plots
 if (0):
     import numpy as np
     import matplotlib.pyplot as plt

@@ -76,6 +76,7 @@ class LandsatSceneData(SceneData):
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self._set_l1_sceneinfo()
+        self._read_l1_metadata()
 
     def _set_l1_sceneinfo(self):
         paths = glob.glob(os.path.join(self.path, self.sceneinfo.l1_mtl_filename()))

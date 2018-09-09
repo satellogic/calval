@@ -44,11 +44,9 @@ def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G
         if not sceneinfo.is_scene():
             logger.info('archive: %s: extracting scene from archive', sceneinfo.archive_path())
             sceneinfo.extract_archive()
-        scenedata = SceneData.from_sceneinfo(sceneinfo)
         # reading the metadata provides better timestamp than the sceneinfo one,
         # and also makes available the proper scaling factors (execute by default?)
-        scenedata._read_l1_metadata()
-
+        scenedata = SceneData.from_sceneinfo(sceneinfo)
         row = OrderedDict(timestamp=scenedata.timestamp, provider=sceneinfo.provider)
         logger.debug('extracting %s for bands %s', product, bands)
         if product.startswith('computed_toa'):
