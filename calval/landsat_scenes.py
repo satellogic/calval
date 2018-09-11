@@ -36,7 +36,7 @@ _band_aliases = dict(
     sr=dict(B='sr_band2', G='sr_band3', R='sr_band4', NIR='sr_band5'),
 )
 
-_scale_values = {'toa': scaling(2e-5, -0.1), 'sr': scaling(1e-4, 0)}
+_scale_values = {'toa_raw': scaling(2e-5, -0.1), 'sr': scaling(1e-4, 0)}
 
 _sceneinfo_flds = [
     ('sat', 4),
@@ -113,7 +113,7 @@ class LandsatSceneData(SceneData):
             rad_scalings.append(scaling(
                 data['RADIANCE_MULT_BAND_{}'.format(iband+1)],
                 data['RADIANCE_ADD_BAND_{}'.format(iband+1)]))
-        self.l1_scalings = {'toa': scalings, 'irradiance': rad_scalings}
+        self.l1_scalings = {'toa_raw': scalings, 'irradiance': rad_scalings}
 
         data = meta['IMAGE_ATTRIBUTES']
         for attr in ['roll_angle', 'earth_sun_distance', 'cloud_cover', 'cloud_cover_land']:
@@ -165,9 +165,19 @@ class LandsatSceneData(SceneData):
             assert hasattr(self, 'l1_scalings')
             band_ind = band_index[self.sceneinfo.band_name(band)]
             scaling = self.l1_scalings[product][band_ind]
-            if product == 'toa':
-                assert scaling == _scale_values['toa']
+            if product == 'toa_raw':
+                assert scaling == _scale_values['toa_raw']
             return scaling
+
+    def scale_image(self, image, band, product=None):
+        if product is None:
+            product = self.sceneinfo.product
+        if product == 'toa':
+            img_raw = super().scale_image(image, band, 'toa_raw')
+            factor = np.sin(self.sun_average_angle.elevation * np.pi / 180)
+            return img_raw / factor
+        else:
+            return super().scale_image(image, band, product)
 
 
 class LandsatSceneInfo(SceneInfo):
@@ -175,7 +185,7 @@ class LandsatSceneInfo(SceneInfo):
     provider = 'landsat8'
     scenedata_class = LandsatSceneData
     product_units = {
-        'sr': None, 'toa': None, 'irradiance': 'W/(m^2 um sr)'
+        'sr': None, 'toa': None, 'toa_raw': None, 'irradiance': 'W/(m^2 um sr)'
     }
 
     def __init__(self, data, config=None):
@@ -189,6 +199,7 @@ class LandsatSceneInfo(SceneInfo):
         self.products = [self.product]
         if self.product == 'toa':
             self.products.append('irradiance')
+            self.products.append('toa_raw')
 
     @property
     def extract_archive(self):

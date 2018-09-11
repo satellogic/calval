@@ -52,9 +52,8 @@ def make_sat_measurements(scenes, site_name, product, label=None, bands=['B', 'G
         if product.startswith('computed_toa'):
             row.update(scenedata.extract_computed_toa(aoi, bands, compute_correction))
         else:
-            # TODO: move this if into LandsatSceneData.extract_values
-            if (correct_landsat_toa and sceneinfo.provider == 'landsat8' and product == 'toa'):
-                row.update(scenedata.extract_corrected_toa(aoi, bands))
+            if ((not correct_landsat_toa) and sceneinfo.provider == 'landsat8' and product == 'toa'):
+                row.update(scenedata.extract_values(aoi, bands, product='toa_raw'))
             else:
                 row.update(scenedata.extract_values(aoi, bands, product=product))
         rows.append(row)
