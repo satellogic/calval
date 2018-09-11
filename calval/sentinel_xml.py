@@ -1,5 +1,21 @@
+import re
 import xml.etree.ElementTree as ET
 import dateutil.parser
+
+float_re = re.compile(r'\d+\.\d+$')
+
+
+def additem(d, key, value):
+    """
+    sets `d[key] = value`, but if `d` already has a value at key,
+    make it a list and append at the end.
+    """
+    if key in d:
+        if not isinstance(d[key], list):
+            d[key] = [d[key]]
+        d[key].append(value)
+    else:
+        d[key] = value
 
 
 def elements2anglelist(elements):
@@ -48,39 +64,48 @@ def elements2dict(elements):
         if len(element) == 0:
             value = element.text
             # In Quality_Indicators_Info we have mask filename lists
-            if name == 'MASK_FILENAME':
+            if name == 'SOLAR_IRRADIANCE':
+                name = '{}_{}'.format(
+                    name, element.attrib['bandId'])
+                value = float(element.text)
+            elif name == 'EXT_POS_LIST':
+                value = [float(x) for x in value.split()]
+            elif name == 'MASK_FILENAME':
                 if 'bandId' in element.attrib:
                     name = '{}_{}_{}'.format(
                         name, element.attrib['type'], element.attrib['bandId'])
                 else:
                     name = '{}_{}'.format(name, element.attrib['type'])
-                d[name] = element.text
+                value = element.text
             # In General_Info we have time fields
             elif name.endswith('_TIME') and value[4] == '-':
                 value = dateutil.parser.parse(value)
-                d[name] = value
             # In Geometric_Info we have angle fields
             elif name.endswith('_ANGLE'):
-                d[name] = float(value)
                 d[name + '_unit'] = element.attrib['unit']
+                value = float(value)
             else:
-                d[name] = value
+                # (value may be None)
+                if value and float_re.match(value):
+                    value = float(value)
+            additem(d, name, value)
         # container elements
         else:
             # In Tile_Angles we have grid fields
             if name.endswith('_Grid') or name.endswith('_Grids'):
                 if name.endswith('s'):
                     name = '{}_{}_{}'.format(name, element.attrib['bandId'], element.attrib['detectorId'])
-                d[name] = elements2grids(element)
+                value = elements2grids(element)
             # In Tile_Angles we have angle lists
             elif name.endswith('_Angle_List'):
-                d[name] = elements2anglelist(element)
+                value = elements2anglelist(element)
             # In Tile_Geocoding we have by-resolution info:
             elif name in {'Size', 'Geoposition'}:
                 name = '{}_{}'.format(name, element.attrib['resolution'])
-                d[name] = elements2dict(element)
+                value = elements2dict(element)
             else:
-                d[name] = elements2dict(element)
+                value = elements2dict(element)
+            additem(d, name, value)
         # end 'if leaf element'
     return d
 
@@ -97,4 +122,14 @@ def parse_tile_metadata(xmlfile):
             blocks[name] = elements2dict(block)
         elif name == 'Quality_Indicators_Info':
             blocks[name] = elements2dict(block)
+    return blocks
+
+
+def parse_xml_metadata(xmlfile):
+    tree = ET.parse(xmlfile)
+    root = tree.getroot()
+    blocks = {}
+    for block in root:
+        name = block.tag.split('}')[-1]
+        blocks[name] = elements2dict(block)
     return blocks

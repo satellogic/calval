@@ -180,6 +180,7 @@ class SceneData(ABC):
             'type': footprint.type
         }
         scene_id = self.sceneinfo.fname_prefix(product, self.timestamp)
+        metadata = self.get_metadata()
 
         params = {
             'supplier': {'landsat8': 'NASA', 'sentinel2': 'ESA'}[self.sceneinfo.provider],
@@ -187,7 +188,7 @@ class SceneData(ABC):
             'satellite_name': self.sceneinfo.satellite,
             'productname': product,
             'footprint': footprint_dict,
-            'metadata': {},
+            'metadata': metadata,
             'scene_id': scene_id,
             'sceneset_id': scene_id,
             'timestamp': self.timestamp.replace(tzinfo=dt.timezone.utc).isoformat()  # self.timestamp is unaware

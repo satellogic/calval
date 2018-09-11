@@ -8,3 +8,4 @@ def test_incidence_angle():
     assert eval(repr(pos), globals()) == pos
     assert eval(str(pos)) == (az, el)
     assert pos.zenith == 90 - el
+    assert IncidenceAngle.from_dict(pos.to_dict()) == pos

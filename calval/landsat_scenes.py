@@ -119,7 +119,7 @@ class LandsatSceneData(SceneData):
         for attr in ['roll_angle', 'earth_sun_distance', 'cloud_cover', 'cloud_cover_land']:
             setattr(self, attr, data[attr.upper()])
         self.sun_average_angle = IncidenceAngle(data['SUN_AZIMUTH'], data['SUN_ELEVATION'])
-        self.sun_distance = data['EARTH_SUN_DISTANCE']
+        self.sun_distance = self.earth_sun_distance
         # Compute estimates for sun spectral radiances [W/(m^2 um)]
         esuns = []
         for i in range(len(scalings)):
@@ -127,6 +127,8 @@ class LandsatSceneData(SceneData):
             # assert abs(rad_scalings[i].add / ratio - scalings[i].add) < 1e-5
             esuns.append(ratio * np.pi * self.sun_distance ** 2)
         self.estimated_esuns = esuns
+        self.esuns = [esuns[band_index[_band_aliases['toa'][band]]]
+                      for band in ['B', 'G', 'R', 'NIR']]
 
         # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
         # For accurate computation, need the Azimuth and the Roll
@@ -139,6 +141,18 @@ class LandsatSceneData(SceneData):
         df = ephemeris_df(meta)
         self.sat_coords = list(df.iloc[df.index.get_loc(self.timestamp, method='nearest')])
         # TODO: get view angles per point from angles file
+
+    def get_metadata(self):
+        meta = {
+            'center': self.center,
+            'esuns': self.esuns,
+            'sun_distance': self.sun_distance,  # from original (no calc)
+            'sun_average_angle': self.sun_average_angle.to_dict(),  # from original (no calc)
+            'sat_average_angle': self.sat_average_angle.to_dict(),
+            'satellite_position': self.sat_coords,
+            'cloud_cover': self.cloud_cover_land,  # land only
+        }
+        return meta
 
     def get_scale(self, band, product):
         if product not in self.sceneinfo.products:

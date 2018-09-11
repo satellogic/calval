@@ -27,7 +27,8 @@ if (True):
     for info in scene_infos:
         print(info.archive_filename())
 
-if (1):
+runit = True
+if (runit):
     # satellites = #['landsat8', 'sentinel2']
     site_name = 'negev'
     product = 'toa'
@@ -37,7 +38,7 @@ if (1):
     sm1.plot()
     # df.to_csv('{}_{}_landsat8.csv'.format(site_name, product))
     # df.to_csv('{}_{}_sentinel2.csv'.format(site_name, product))
-if (1):
+if (runit):
     # Note: Irradiance only available for landsat
     product = 'irradiance'
     # sm1 = make_sat_measurements(scene_infos, site_name, product)
@@ -56,7 +57,7 @@ if (1):
     fig = sm5.plot(legend_label='calc')
     sm6 = make_sat_measurements(filenames, site_name, 'toa', provider='landsat8', correct_landsat_toa=True)
     sm6.plot(styles={'landsat8': '+--'}, fig=fig)
-if (1):
+if (runit):
     product = 'sr'
     sm2 = make_sat_measurements(filenames, site_name, product)
     print(sm2.df)
@@ -67,7 +68,7 @@ if (1):
     matplotlib.pyplot.show()
 
 # some metadata analysis (sentinel)
-if (1):
+if (runit):
     s_l1 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'toa']
     s_l2 = [i for i in scene_infos if i.provider == 'sentinel2' and i.product == 'sr']
     scene = SceneData.from_sceneinfo(s_l1[0])
@@ -81,7 +82,7 @@ if (1):
     print('s2 l2 sat angle:', scene.sat_average_angle)
 
 # some metadata analysis (landsat)
-if (1):
+if (runit):
     ls_l1 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'toa']
     ls_l2 = [i for i in scene_infos if i.provider == 'landsat8' and i.product == 'sr']
     si = ls_l1[0]
@@ -119,6 +120,7 @@ if (1):
     scene_s2 = scenes_s2[6]
     # print('saving {}'.format(scene_s2.get_metadata_path()))
     # scene_s2.save_normalized()
+
 if (0):
     pairs = {}
     for band in ['G', 'B', 'R', 'NIR']:
