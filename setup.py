@@ -36,5 +36,13 @@ setup(
         'calval': ['site_data/*']
     },
     install_requires=install_requires,
+    #
+    # Hack: no wheel for rasterio 1.0.3 on py3.4,
+    # and building from tarball fails...
+    extras_require={
+        ':python_version == "3.4"': [
+            'rasterio<1.0.3'
+        ]
+    },
     dependency_links=dependency_links
 )
