@@ -1,3 +1,4 @@
+import warnings
 import datetime as dt
 import numpy as np
 import pysolar.solartime as stime
@@ -11,9 +12,13 @@ _s2_julian_epoch_t = dt.datetime(1950, 1, 1, 0, 0, tzinfo=dt.timezone.utc).times
 
 @check_aware_dt('time')
 def sun_earth_distance(time):
-    jde = stime.get_julian_ephemeris_day(time)
-    jce = stime.get_julian_ephemeris_century(jde)
-    jme = stime.get_julian_ephemeris_millennium(jce)
+    # TODO, get rid of this filtering once pysolar updates leapsecond data
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore', "I don't know about leap seconds after 2017")
+        jde = stime.get_julian_ephemeris_day(time)
+        jce = stime.get_julian_ephemeris_century(jde)
+        jme = stime.get_julian_ephemeris_millennium(jce)
     return get_sun_earth_distance(jme)
 
 
@@ -46,8 +51,11 @@ class SunLocator:
         """
         :return: position of the sun, as `IncidenceAngle` object
         """
-        az, el = get_position(self.latitude, self.longitude, time,
-                              self.elevation)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                'ignore', "I don't know about leap seconds after 2017")
+            az, el = get_position(self.latitude, self.longitude, time,
+                                  self.elevation)
         return IncidenceAngle(az, el)
 
     def distance_au(self, time):

@@ -8,9 +8,9 @@ import numpy as np
 from calval.geometry import IncidenceAngle
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
-from calval.sentinel_xml import parse_tile_metadata
-from calval.satellites.srf import Sentinel2Blue, Sentinel2Green, Sentinel2Red
-from calval.analysis import exatmospheric_irradiance
+from calval.sentinel_xml import parse_tile_metadata, parse_xml_metadata
+from calval.satellites.srf import Sentinel2Blue, Sentinel2Green, Sentinel2Red, Sentinel2Nir
+from calval.analysis import srf_exatmospheric_irradiance
 
 _product_names = {
     'MSIL1C': 'toa',
@@ -58,21 +58,41 @@ sentinelid = collections.namedtuple(
 
 class SentinelSceneData(SceneData):
     band_ex_irradiance = {
-        _band_aliases['B']: exatmospheric_irradiance(Sentinel2Blue()),
-        _band_aliases['G']: exatmospheric_irradiance(Sentinel2Green()),
-        _band_aliases['R']: exatmospheric_irradiance(Sentinel2Red()),
-        # _band_aliases['NIR']: exatmospheric_irradiance(Sentinel2Nir()),
+        _band_aliases['B']: srf_exatmospheric_irradiance(Sentinel2Blue()),
+        _band_aliases['G']: srf_exatmospheric_irradiance(Sentinel2Green()),
+        _band_aliases['R']: srf_exatmospheric_irradiance(Sentinel2Red()),
+        _band_aliases['NIR']: srf_exatmospheric_irradiance(Sentinel2Nir())
     }
 
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self.granule = self.sceneinfo._get_granule()
+        self._read_product_metadata()
+        self._read_l1_metadata()
 
-    def _mtd_path(self):
+    def _granule_mtd_path(self):
         return os.path.join(self.path, 'GRANULE', self.granule, 'MTD_TL.xml')
 
+    def _product_mtd_path(self):
+        return os.path.join(self.path, 'MTD_{}.xml'.format(self.sceneinfo._data.product))
+
+    def _read_product_metadata(self):
+        self.product_meta = metadata = parse_xml_metadata(self._product_mtd_path())
+        data = metadata['General_Info']['Product_Image_Characteristics']['Reflectance_Conversion']
+        self.esuns = [
+            data['Solar_Irradiance_List']['SOLAR_IRRADIANCE_{}'.format(
+                _band_id(_band_aliases[band]))]
+            for band in ['B', 'G', 'R', 'NIR']
+        ]
+        self.sun_distance = np.sqrt(1.0 / data['U'])  # assuming U is `d(t)` of the TG
+        data = metadata['Geometric_Info']['Product_Footprint']['Product_Footprint']
+        coords = data['Global_Footprint']['EXT_POS_LIST']
+        self.corners = [(coords[i+1], coords[i]) for i in range(0, 8, 2)]
+        self.center = tuple(np.average(self.corners, axis=0))
+        self.cloud_coverage = metadata['Quality_Indicators_Info']['Cloud_Coverage_Assessment']
+
     def _read_l1_metadata(self):
-        self.metadata = metadata = parse_tile_metadata(self._mtd_path())
+        self.metadata = metadata = parse_tile_metadata(self._granule_mtd_path())
         self.timestamp = metadata['General_Info']['SENSING_TIME']
 
         def _view_angle(bandid):
@@ -91,6 +111,17 @@ class SentinelSceneData(SceneData):
         sun_azimuth = metadata['Geometric_Info']['Tile_Angles']['Mean_Sun_Angle']['AZIMUTH_ANGLE']
         sun_zenith = metadata['Geometric_Info']['Tile_Angles']['Mean_Sun_Angle']['ZENITH_ANGLE']
         self.sun_average_angle = IncidenceAngle(sun_azimuth, 90 - sun_zenith)
+
+    def get_metadata(self):
+        meta = {
+            'center': self.center,
+            'esuns': self.esuns,
+            'sun_distance': self.sun_distance,  # based on `U` from metadata
+            'sat_average_angle': self.sat_average_angle.to_dict(),
+            'sun_average_angle': self.sun_average_angle.to_dict(),
+            'cloud_cover': self.cloud_coverage
+        }
+        return meta
 
     def get_scale(self, band, product):
         """ TODO: compute from metadata """

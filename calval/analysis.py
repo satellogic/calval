@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,7 +19,8 @@ def integrate(site_measurements, srf):
                              for time, row in measurements_df.iterrows()}
         return pd.Series(data=integrated_values).astype(np.float32)
 
-    return [_integrate(getattr(site_measurements, data), srf) for data in ['toa', 'toa_errs', 'sr', 'sr_errs']]
+    return [_integrate(getattr(site_measurements, data), srf)
+            for data in ['toa', 'toa_errs', 'sr', 'sr_errs']]
 
 
 def exatmospheric_irradiance(srf, dlambda_nm=0.5, start_nm=200.0, end_nm=2000.0):
@@ -28,11 +30,30 @@ def exatmospheric_irradiance(srf, dlambda_nm=0.5, start_nm=200.0, end_nm=2000.0)
     `dlambda_nm`, `start_nm`, `end_nm`: interpolation parameters for the solar spectrum
     :return: band irradiance at 1au, in [W/(m^2 um)]
     """
+    warnings.warn(DeprecationWarning(
+        '`exatmospheric_irradiance` is scheduled to be removed, '
+        'use `srf_exatmospheric_irradiance` (nm based units) instead.'))
     srr = SolarIrradianceSpectrum(TOTAL_IRRADIANCE_SPECTRUM_2000ASTM, dlambda=dlambda_nm/1000)
     srr.interpolate(ival_wavelength=(start_nm/1000, end_nm/1000))
     lambdas = srr.ipol_wavelength * 1000
     response = srf(lambdas)
     avg = np.dot(response, srr.ipol_irradiance) / np.sum(response)
+    return avg
+
+
+def srf_exatmospheric_irradiance(srf, dlambda_nm=0.5, start_nm=200.0, end_nm=2000.0):
+    """
+    Compute the exatmospheric solar irradiance of some sensor (band) at 1a.u.
+    :param srf: SRF
+    `dlambda_nm`, `start_nm`, `end_nm`: interpolation parameters for the solar spectrum
+    :return: band irradiance at 1au, in [W/(m^2 nm)]
+    """
+    srr = SolarIrradianceSpectrum(TOTAL_IRRADIANCE_SPECTRUM_2000ASTM, dlambda=dlambda_nm/1000)
+    srr.interpolate(ival_wavelength=(start_nm/1000, end_nm/1000))
+    lambdas = srr.ipol_wavelength * 1000
+    values = srr.ipol_irradiance / 1000.0
+    response = srf(lambdas)
+    avg = np.dot(response, values) / np.sum(response)
     return avg
 
 
@@ -86,7 +107,7 @@ def toa_irradiance_to_reflectance(irradiance, sun_band_flux, sun_locator, time, 
     Computes toa reflectance from toa_irradiance
     :param irradiance: toa irradiance in [W/(m^2 nm sr)].
     :param sun_band_flux: The sun spectral flux at 1au in [W/(m^2 nm)]
-       (to compute from band SRF, use the function `exatmospheric_irradiance`).
+       (to compute from band SRF, use the function `srf_exatmospheric_irradiance`).
     :param sun_locator: `SunLocator` object for the relevant location on earth.
     :param time: timezone-aware datetime.
     :param sat_angle: `IncidenceAngle` of satellite relative to the site.

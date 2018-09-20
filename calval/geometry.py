@@ -12,6 +12,10 @@ class IncidenceAngle:
         self.azimuth = azimuth_deg
         self.elevation = elevation_deg
 
+    @classmethod
+    def from_dict(cls, d):
+        return cls(d['azimuth'], d['elevation'])
+
     @property
     def zenith(self):
         return 90 - self.elevation
@@ -21,6 +25,9 @@ class IncidenceAngle:
 
     def __str__(self):
         return str((self.azimuth, self.elevation))
+
+    def to_dict(self):
+        return {'azimuth': self.azimuth, 'elevation': self.elevation}
 
     def isclose(self, other, accuracy):
         eq = (isclose(self.azimuth, other.azimuth, abs_tol=accuracy) and

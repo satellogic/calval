@@ -1,8 +1,9 @@
 """
-Module should contain the base SceneInfo class, plus othe stuff which is useful for implementing
-the provider-specific specializations
+Module should contain the base SceneInfo class, plus other stuff which is useful
+for implementing the provider-specific specializations
 """
 import os
+import datetime as dt
 import collections
 import warnings
 import calval.config
@@ -62,6 +63,33 @@ class SceneInfo:
         if path is None:
             path = os.path.join(self.config['data_dir'], name)
         return path
+
+    # funcs for generating normalized paths
+
+    def _path_params(self, product=None, timestamp=None):
+        # We allow specifying product in order to support computed products
+        if product is None:
+            product = self.product
+        else:
+            assert product in self.products
+
+        # We allow specifying timestamp for cases where the filename does not
+        # contain the hour
+        if timestamp is None:
+            timestamp = self.timestamp
+        else:
+            assert timestamp.date() == self.timestamp.date()
+            # If tz aware: enforce UTC
+            if timestamp.tzinfo is not None:
+                timestamp = timestamp.astimezone(dt.timezone.utc)
+        ts = timestamp.strftime('%Y%m%d%H%M')
+        return [product, self.satellite, self.tile_id, ts]
+
+    def blob_prefix(self, *args, **kwargs):
+        return '/'.join(self._path_params(*args, **kwargs))
+
+    def fname_prefix(self, *args, **kwargs):
+        return '_'.join(self._path_params(*args, **kwargs))
 
     @classmethod
     def from_filename(cls, filename, config=None):

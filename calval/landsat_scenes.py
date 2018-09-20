@@ -13,7 +13,7 @@ from calval.scene_data import SceneData
 from calval.landsat_mtl import read_mtl, ephemeris_df
 from calval.sun_locator import SunLocator
 from calval.satellites.srf import Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir
-from calval.analysis import exatmospheric_irradiance
+from calval.analysis import srf_exatmospheric_irradiance
 
 _site_prs = {
     'baotou': ['128032', '127032'],
@@ -36,7 +36,7 @@ _band_aliases = dict(
     sr=dict(B='sr_band2', G='sr_band3', R='sr_band4', NIR='sr_band5'),
 )
 
-_scale_values = {'toa': scaling(2e-5, -0.1), 'sr': scaling(1e-4, 0)}
+_scale_values = {'toa_raw': scaling(2e-5, -0.1), 'sr': scaling(1e-4, 0)}
 
 _sceneinfo_flds = [
     ('sat', 4),
@@ -59,23 +59,25 @@ def _displayid_str(displayid):
 
 
 class LandsatSceneData(SceneData):
+    # ex_irradiance, in W/(m^2 nm sr)
     band_ex_irradiance = {
-        _band_aliases['toa']['B']: exatmospheric_irradiance(Landsat8Blue()),
-        _band_aliases['toa']['G']: exatmospheric_irradiance(Landsat8Green()),
-        _band_aliases['toa']['R']: exatmospheric_irradiance(Landsat8Red()),
-        _band_aliases['toa']['NIR']: exatmospheric_irradiance(Landsat8Nir()),
+        _band_aliases['toa']['B']: srf_exatmospheric_irradiance(Landsat8Blue()),
+        _band_aliases['toa']['G']: srf_exatmospheric_irradiance(Landsat8Green()),
+        _band_aliases['toa']['R']: srf_exatmospheric_irradiance(Landsat8Red()),
+        _band_aliases['toa']['NIR']: srf_exatmospheric_irradiance(Landsat8Nir()),
     }
     # calculated the following backwards from 4 scenes of negev
     est_band_ex_irradiance = {
-        _band_aliases['toa']['B']: 2019.59,
-        _band_aliases['toa']['G']: 1861.06,
-        _band_aliases['toa']['R']: 1569.34,
-        _band_aliases['toa']['NIR']: 960.37,
+        _band_aliases['toa']['B']: 2.01959,
+        _band_aliases['toa']['G']: 1.86106,
+        _band_aliases['toa']['R']: 1.56934,
+        _band_aliases['toa']['NIR']: 0.96037,
     }
 
     def __init__(self, sceneinfo, path=None):
         super().__init__(sceneinfo, path)
         self._set_l1_sceneinfo()
+        self._read_l1_metadata()
 
     def _set_l1_sceneinfo(self):
         paths = glob.glob(os.path.join(self.path, self.sceneinfo.l1_mtl_filename()))
@@ -96,7 +98,8 @@ class LandsatSceneData(SceneData):
         timestamp = dateutil.parser.parse(
             data['DATE_ACQUIRED'].strftime('%Y-%m-%d') + 'T' + data['SCENE_CENTER_TIME'])
         self.timestamp = timestamp
-        self.corners = [(data['CORNER_{}_LON_PRODUCT'.format(x)], data['CORNER_{}_LAT_PRODUCT'.format(x)])
+        self.corners = [(data['CORNER_{}_LON_PRODUCT'.format(x)],
+                         data['CORNER_{}_LAT_PRODUCT'.format(x)])
                         for x in ['UL', 'UR', 'LR', 'LL']]
         self.center = tuple(np.average(self.corners, axis=0))
         self.center_sunpos = SunLocator(self.center[0], self.center[1], 0)
@@ -108,17 +111,19 @@ class LandsatSceneData(SceneData):
                 data['REFLECTANCE_MULT_BAND_{}'.format(iband+1)],
                 data['REFLECTANCE_ADD_BAND_{}'.format(iband+1)]))
         rad_scalings = []
+        # NOTE: metadata gives scaling factors in W/(m^2 um sr), we need values in W/(m^2 nm sr)
+        # so we divide by 1000.0
         for iband in range(11):
             rad_scalings.append(scaling(
-                data['RADIANCE_MULT_BAND_{}'.format(iband+1)],
-                data['RADIANCE_ADD_BAND_{}'.format(iband+1)]))
-        self.l1_scalings = {'toa': scalings, 'irradiance': rad_scalings}
+                data['RADIANCE_MULT_BAND_{}'.format(iband+1)] / 1000.0,
+                data['RADIANCE_ADD_BAND_{}'.format(iband+1)] / 1000.0))
+        self.l1_scalings = {'toa_raw': scalings, 'irradiance': rad_scalings}
 
         data = meta['IMAGE_ATTRIBUTES']
         for attr in ['roll_angle', 'earth_sun_distance', 'cloud_cover', 'cloud_cover_land']:
             setattr(self, attr, data[attr.upper()])
         self.sun_average_angle = IncidenceAngle(data['SUN_AZIMUTH'], data['SUN_ELEVATION'])
-        self.sun_distance = data['EARTH_SUN_DISTANCE']
+        self.sun_distance = self.earth_sun_distance
         # Compute estimates for sun spectral radiances [W/(m^2 um)]
         esuns = []
         for i in range(len(scalings)):
@@ -126,6 +131,8 @@ class LandsatSceneData(SceneData):
             # assert abs(rad_scalings[i].add / ratio - scalings[i].add) < 1e-5
             esuns.append(ratio * np.pi * self.sun_distance ** 2)
         self.estimated_esuns = esuns
+        self.esuns = [esuns[band_index[_band_aliases['toa'][band]]]
+                      for band in ['B', 'G', 'R', 'NIR']]
 
         # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
         # For accurate computation, need the Azimuth and the Roll
@@ -139,6 +146,18 @@ class LandsatSceneData(SceneData):
         self.sat_coords = list(df.iloc[df.index.get_loc(self.timestamp, method='nearest')])
         # TODO: get view angles per point from angles file
 
+    def get_metadata(self):
+        meta = {
+            'center': self.center,
+            'esuns': self.esuns,
+            'sun_distance': self.sun_distance,  # from original (no calc)
+            'sun_average_angle': self.sun_average_angle.to_dict(),  # from original (no calc)
+            'sat_average_angle': self.sat_average_angle.to_dict(),
+            'satellite_position': self.sat_coords,
+            'cloud_cover': self.cloud_cover_land,  # land only
+        }
+        return meta
+
     def get_scale(self, band, product):
         if product not in self.sceneinfo.products:
             raise ValueError('not available')
@@ -150,9 +169,19 @@ class LandsatSceneData(SceneData):
             assert hasattr(self, 'l1_scalings')
             band_ind = band_index[self.sceneinfo.band_name(band)]
             scaling = self.l1_scalings[product][band_ind]
-            if product == 'toa':
-                assert scaling == _scale_values['toa']
+            if product == 'toa_raw':
+                assert scaling == _scale_values['toa_raw']
             return scaling
+
+    def scale_image(self, image, band, product=None):
+        if product is None:
+            product = self.sceneinfo.product
+        if product == 'toa':
+            img_raw = super().scale_image(image, band, 'toa_raw')
+            factor = np.sin(self.sun_average_angle.elevation * np.pi / 180)
+            return img_raw / factor
+        else:
+            return super().scale_image(image, band, product)
 
 
 class LandsatSceneInfo(SceneInfo):
@@ -160,7 +189,7 @@ class LandsatSceneInfo(SceneInfo):
     provider = 'landsat8'
     scenedata_class = LandsatSceneData
     product_units = {
-        'sr': None, 'toa': None, 'irradiance': 'W/(m^2 um sr)'
+        'sr': None, 'toa': None, 'toa_raw': None, 'irradiance': 'W/(m^2 um sr)'
     }
 
     def __init__(self, data, config=None):
@@ -174,6 +203,7 @@ class LandsatSceneInfo(SceneInfo):
         self.products = [self.product]
         if self.product == 'toa':
             self.products.append('irradiance')
+            self.products.append('toa_raw')
 
     @property
     def extract_archive(self):
