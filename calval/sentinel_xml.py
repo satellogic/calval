@@ -94,7 +94,8 @@ def elements2dict(elements):
             # In Tile_Angles we have grid fields
             if name.endswith('_Grid') or name.endswith('_Grids'):
                 if name.endswith('s'):
-                    name = '{}_{}_{}'.format(name, element.attrib['bandId'], element.attrib['detectorId'])
+                    name = '{}_{}_{}'.format(
+                        name, element.attrib['bandId'], element.attrib['detectorId'])
                 value = elements2grids(element)
             # In Tile_Angles we have angle lists
             elif name.endswith('_Angle_List'):

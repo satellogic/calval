@@ -1,6 +1,12 @@
+import os
 import logging
 import numpy as np
 import telluric as tl
+
+# TODO: Temporary imports for uploading scenes. seperate out cloud backend dependencies
+from tqdm import tqdm
+from azure.storage.blob import BlockBlobService
+
 from calval.scene_info import SceneInfo
 # Import provider module to enable the factory mechanism
 import calval.sentinel_scenes  # noqa: F401
@@ -55,7 +61,8 @@ if (runit):
     sm5 = make_sat_measurements(filenames, site_name, 'computed_toa_corrected')
     print(sm5.df)
     fig = sm5.plot(legend_label='calc')
-    sm6 = make_sat_measurements(filenames, site_name, 'toa', provider='landsat8', correct_landsat_toa=True)
+    sm6 = make_sat_measurements(filenames, site_name, 'toa', provider='landsat8',
+                                correct_landsat_toa=True)
     sm6.plot(styles={'landsat8': '+--'}, fig=fig)
 if (runit):
     product = 'sr'
@@ -121,6 +128,94 @@ if (1):
     # print('saving {}'.format(scene_s2.get_metadata_path()))
     # scene_s2.save_normalized()
 
+
+class TqdmUpTo(tqdm):
+    """Provides `update_to(n, total)` which uses `tqdm.update(delta_n)`."""
+    def update_to(self, current, total):
+        self.update(current - self.n)
+
+
+def upload_normalized(scene, bands, product):
+    from azure.storage.common.retry import (
+        # ExponentialRetry,
+        LinearRetry,
+        # no_retry
+    )
+    connection_string = open('/home/amit/telluric/secrets/azure-storage-connection-string').read().rstrip()
+    svc = BlockBlobService(connection_string=connection_string)
+    svc.retry = LinearRetry(max_attempts=20).retry
+    container = 'calval'
+
+    blob_prefix = scene.sceneinfo.blob_prefix(product, scene.timestamp)
+    fname_prefix = scene.sceneinfo.fname_prefix(product, scene.timestamp)
+    for band in bands:
+        local_path = scene.get_normalized_path(band, product=product)
+        filelen = os.stat(local_path).st_size
+        blob_name = '{}/{}_{}.tif'.format(blob_prefix, fname_prefix, band)
+        with TqdmUpTo(unit='B', unit_scale=True, miniters=1, total=filelen,
+                      desc=blob_name) as t:
+            svc.create_blob_from_path(
+                container, blob_name, local_path,
+                progress_callback=t.update_to)
+
+    local_path = scene.get_metadata_path(product)
+    filelen = os.stat(local_path).st_size
+    blob_name = '{}/{}_metadata.json'.format(blob_prefix, fname_prefix)
+    with TqdmUpTo(unit='B', unit_scale=True, miniters=1, total=filelen,
+                  desc=blob_name) as t:
+        svc.create_blob_from_path(
+            container, blob_name, local_path,
+            progress_callback=t.update_to)
+
+
+if (0):
+    connection_string = open('/home/amit/telluric/secrets/azure-storage-connection-string').read().rstrip()
+    svc = BlockBlobService(connection_string=connection_string)
+
+# Upload normalized scenes
+if (0):
+    # scene = scenes_l8[2]
+    # upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+    for scene in []:  # scenes_l8[3:]:
+        print('saving', scene.sceneinfo.scene_id)
+        scene.save_normalized()
+        print('uploading...')
+        upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+
+    scene = scenes_s2[2]
+    upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+    for scene in scenes_s2[3:]:
+        print('saving', scene.sceneinfo.scene_id)
+        scene.save_normalized()
+        print('uploading...')
+        upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+
+
+if (0):
+    connection_string = open(
+        '/home/amit/telluric/secrets/azure-storage-connection-string').read().rstrip()
+    svc = BlockBlobService(connection_string=connection_string)
+    container = 'calval'
+    # all = list(svc.list_blobs(container))
+    band = 'B'
+    product = 'toa'
+    print(scene_s2._normalized_dirname(product))
+    blob_prefix = scene_s2.sceneinfo.blob_prefix(product, scene_s2.timestamp)
+    print(blob_prefix)
+    fname_prefix = scene_s2.sceneinfo.fname_prefix(product, scene_s2.timestamp)
+    local_path = scene_s2.get_normalized_path(band, product=product)
+    filelen = os.stat(local_path).st_size
+    print('--->', local_path, filelen)
+    blob_name = '{}/{}_{}.tif'.format(blob_prefix, fname_prefix, band)
+    print(blob_name)
+    print('--->', scene_s2.get_metadata_path('toa'))
+    print('{}/{}_metadata.json'.format(blob_prefix, fname_prefix))
+    with TqdmUpTo(unit='B', unit_scale=True, miniters=1, total=filelen,
+                  desc=blob_name) as t:
+        svc.create_blob_from_path(
+            container, blob_name,  local_path,
+            progress_callback=t.update_to)
+
 if (0):
     pairs = {}
     for band in ['G', 'B', 'R', 'NIR']:
@@ -130,7 +225,7 @@ if (0):
         s2_tile = tl.GeoRaster2.open(scene_s2.get_normalized_path(band)).get_tile(2446, 1688, 12)
         s2_tile.save('/tmp/s2_tile_{}.tif'.format(band), nodata=0)
         pairs[band] = [np.ravel(l8_tile.image[0]), np.ravel(s2_tile.image[0])]
-if (1):
+if (0):
     import matplotlib.pyplot as plt
     l8_tile = tl.GeoRaster2.open(scene_l8.get_normalized_path('B')).get_tile(2446, 1688, 12)
     s2_tile = tl.GeoRaster2.open(scene_s2.get_normalized_path('B')).get_tile(2446, 1688, 12)

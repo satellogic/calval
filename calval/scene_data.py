@@ -111,7 +111,8 @@ class SceneData(ABC):
         if product is None:
             product = self.sceneinfo.product
         scale = self.get_scale(band, product)
-        return image * scale.multiply + scale.add
+        float_image = image * scale.multiply + scale.add
+        return float_image
 
     def float_image(self, band, product=None, aoi=None):
         raster = self.raster(band, aoi)
@@ -121,11 +122,10 @@ class SceneData(ABC):
         maxword = 1 << 16
         raster = self.raster(band)
         float_img = self.scale_image(raster.image, band, product)
-        # solar irradiance for blue is around 2000 W/(m^2 um),
-        # so reflected lambertian irrad can be upto ~ 640 W/(m^2 um sr)
-        if product == 'irradiance':
-            float_img = float_img / 1000.0
         # encode to 16 bits
+        # Note: exatmospheric solar irradiance for blue is around 2 W/(m^2 nm),
+        #    so reflected lambertian irrad can be upto 2/pi ~ 0.640 W/(m^2 nm sr)
+        #    hence, clipping to [0:1] should be OK
         img = np.ma.round(float_img * maxword)
         img = np.ma.clip(img, 1, maxword - 1).astype(np.uint16)
         raster = raster.copy_with(image=img)
@@ -149,8 +149,8 @@ class SceneData(ABC):
         for band in bands:
             bandname = self.sceneinfo.band_name(band)
             reflectance_per_unit = toa_irradiance_to_reflectance(
-                1.0, self.band_ex_irradiance[bandname], self.center_sunpos, self.timestamp,
-                ignore_sun_zenith=ignore_sun_zenith)
+                1.0, self.band_ex_irradiance[bandname],
+                self.center_sunpos, self.timestamp, ignore_sun_zenith=ignore_sun_zenith)
             for stat in ['median', 'average', 'std']:
                 prop_name = '{}_{}'.format(band, stat)
                 row[prop_name] = reflectance_per_unit * irradiance_row[prop_name]
@@ -177,7 +177,8 @@ class SceneData(ABC):
             'metadata': metadata,
             'scene_id': scene_id,
             'sceneset_id': scene_id,
-            'timestamp': self.timestamp.replace(tzinfo=dt.timezone.utc).isoformat()  # self.timestamp is unaware
+            'timestamp': self.timestamp.replace(
+                tzinfo=dt.timezone.utc).isoformat()  # self.timestamp is unaware
             # 'last_modified': '',
             # 'attachments': [],
             # 'rasters': [], # {'bands': [bandname], 'filename':, 'scene':, ...}

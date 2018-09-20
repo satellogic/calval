@@ -11,7 +11,8 @@ from calval.geometry import IncidenceAngle
 from calval.satellites.srf import (
     SRF, Sentinel2Green, Sentinel2Blue, Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir)
 from calval.analysis import (
-    integrate, plot, exatmospheric_irradiance, toa_irradiance_to_reflectance)
+    integrate, plot, exatmospheric_irradiance, srf_exatmospheric_irradiance,
+    toa_irradiance_to_reflectance)
 
 
 def test_integrate():
@@ -28,9 +29,12 @@ def test_integrate():
 def test_exatmospheric_irradiance():
     # compare results to info from
     # https://en.wikipedia.org/wiki/Landsat_8#Operational_Land_Imager
-    landsat_irradiances = [1925, 1826, 1574, 955]
+    landsat_irradiances = [1.925, 1.826, 1.574, 0.955]
     for i, srf_class in enumerate([Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir]):
-        irradiance = exatmospheric_irradiance(srf_class())
+        irradiance = srf_exatmospheric_irradiance(srf_class())
+        with pytest.warns(DeprecationWarning):
+            um_irradiance = exatmospheric_irradiance(srf_class())
+        assert um_irradiance / 1000.0 == pytest.approx(irradiance)
         ref_value = landsat_irradiances[i]
         assert irradiance == pytest.approx(ref_value, rel=0.03)
 
@@ -49,16 +53,16 @@ def test_toa_irradiance_to_reflectance():
     site_lon, site_lat = (35.0089, 30.1135)
     locator = SunLocator(site_lon, site_lat)
     # estimations from SRF of Landsat8 Blue, Green, Red:
-    band_sun_flux = [1969.07, 1847.87, 1569.46]
+    band_sun_flux = [1.96907, 1.84787, 1.56946]
     # some data from landsat products of negev site
     times = [
         dt.datetime(*x, tzinfo=dt.timezone.utc) for x in [
             (2018, 5, 15, 8, 10, 30), (2018, 5, 31, 8, 10, 17),
             (2018, 6, 16, 8, 10, 24), (2018, 7, 2, 8, 10, 34)
         ]]
-    band_irradiance = [165.804666, 203.901788, 230.3557377]
+    band_irradiance = [0.165804666, 0.203901788, 0.2303557377]
     band_reflectance = [0.26356, 0.35174, 0.47122]
-    blue_irradiance = [165.804666, 163.292076, 160.111839, 157.002668]
+    blue_irradiance = [0.165804666, 0.163292076, 0.160111839, 0.157002668]
     blue_reflectance = [0.26356, 0.26108, 0.25702, 0.25244]
 
     # sanity of sat_position dependance

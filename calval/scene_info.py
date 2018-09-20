@@ -1,6 +1,6 @@
 """
-Module should contain the base SceneInfo class, plus othe stuff which is useful for implementing
-the provider-specific specializations
+Module should contain the base SceneInfo class, plus other stuff which is useful
+for implementing the provider-specific specializations
 """
 import os
 import datetime as dt

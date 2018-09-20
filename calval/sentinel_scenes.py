@@ -10,7 +10,7 @@ from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
 from calval.sentinel_xml import parse_tile_metadata, parse_xml_metadata
 from calval.satellites.srf import Sentinel2Blue, Sentinel2Green, Sentinel2Red, Sentinel2Nir
-from calval.analysis import exatmospheric_irradiance
+from calval.analysis import srf_exatmospheric_irradiance
 
 _product_names = {
     'MSIL1C': 'toa',
@@ -58,10 +58,10 @@ sentinelid = collections.namedtuple(
 
 class SentinelSceneData(SceneData):
     band_ex_irradiance = {
-        _band_aliases['B']: exatmospheric_irradiance(Sentinel2Blue()),
-        _band_aliases['G']: exatmospheric_irradiance(Sentinel2Green()),
-        _band_aliases['R']: exatmospheric_irradiance(Sentinel2Red()),
-        _band_aliases['NIR']: exatmospheric_irradiance(Sentinel2Nir())
+        _band_aliases['B']: srf_exatmospheric_irradiance(Sentinel2Blue()),
+        _band_aliases['G']: srf_exatmospheric_irradiance(Sentinel2Green()),
+        _band_aliases['R']: srf_exatmospheric_irradiance(Sentinel2Red()),
+        _band_aliases['NIR']: srf_exatmospheric_irradiance(Sentinel2Nir())
     }
 
     def __init__(self, sceneinfo, path=None):
