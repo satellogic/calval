@@ -4,11 +4,13 @@ python:
     - "3.4"
     - "3.5"
     - "3.6"
-    - "3.7-dev"
 
+# Matrix approach here due to: https://github.com/travis-ci/travis-ci/issues/9815
 matrix:
-  allow_failures:
-    - python: "3.7-dev"
+    include:
+        - python: 3.7
+          dist: xenial
+          sudo: true
 
 install:
     - "pip install -r requirements-build.txt"
