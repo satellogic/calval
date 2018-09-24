@@ -4,7 +4,6 @@ appdirs
 numpy
 git+https://github.com/AmitAronovitch/pysolar.git@0.7+pre.0.8#egg=pysolar-0.7+pre.0.8
 git+https://github.com/AmitAronovitch/python-geotiepoints.git@v1.1.5-py37#egg=python_geotiepoints-1.1.5
-cython
 git+https://github.com/jswhit/pyproj.git@master#egg=pyproj-1.9.5.2.dev11
 pyspectral
 matplotlib

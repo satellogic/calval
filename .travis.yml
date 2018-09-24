@@ -13,6 +13,7 @@ matrix:
           sudo: true
 
 install:
+    - "pip install cython"
     - "pip install -r requirements-build.txt"
     - "pip install --process-dependency-links --editable ."
 
