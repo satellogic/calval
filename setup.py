@@ -1,4 +1,5 @@
 import os
+import sys
 from setuptools import setup, find_packages
 
 version = '0.1.2'
@@ -49,7 +50,7 @@ setup(
         # and building from tarball fails...
         ':python_version == "3.4"': [
             'rasterio<1.0.3'
-        ]
+        ],
         ':python_version == "3.7"': [
             # versions before 1.1.6 did not support py37
             'python-geotiepoints>=1.1.6',
