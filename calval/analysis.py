@@ -93,7 +93,7 @@ def plot(types, site_measurements, srfs, with_errors=True, fig=None, show=True):
     plt.grid()
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.tight_layout()
-    if show:
+    if show:  # pragma: no cover
         plt.show()
     return fig
 
