@@ -2,7 +2,7 @@ import os
 import sys
 from setuptools import setup, find_packages
 
-version = '0.1.2'
+version = '0.1.3'
 
 proj_dir = os.path.abspath(os.path.dirname(__file__))
 reqs = [line.strip()
@@ -12,9 +12,9 @@ install_requires = [req.split('#egg=')[-1].replace('-', '==')
                     if '#egg=' in req else req
                     for req in reqs]
 dependency_links = [req for req in reqs if 'git+' in req]
-# Hack, for py37, use unreleased version
+# Hack, for py37, use unreleased version of pyproj
 # This also requires installing cython in the .travis.yml,
-# and some extras_require entry (see below)
+# and some `extras_require` entry (see below)
 if sys.version_info[:2] == (3, 7):
     dependency_links.append(
         'git+https://github.com/jswhit/pyproj.git@master#egg=pyproj-1.9.5.2.dev11'
