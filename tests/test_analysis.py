@@ -46,7 +46,7 @@ def test_plot():
     # make sure all below modes don't fail:
     for with_errors in [False, True]:
         for types in ['toa', 'sr', ['toa', 'sr']]:
-            plot(types, sm, srfs, with_errors=with_errors)
+            plot(types, sm, srfs, with_errors=with_errors, show=False)
 
 
 def test_toa_irradiance_to_reflectance():

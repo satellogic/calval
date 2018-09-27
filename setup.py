@@ -1,7 +1,8 @@
 import os
+import sys
 from setuptools import setup, find_packages
 
-version = '0.1.2'
+version = '0.1.3'
 
 proj_dir = os.path.abspath(os.path.dirname(__file__))
 reqs = [line.strip()
@@ -11,8 +12,15 @@ install_requires = [req.split('#egg=')[-1].replace('-', '==')
                     if '#egg=' in req else req
                     for req in reqs]
 dependency_links = [req for req in reqs if 'git+' in req]
-print(install_requires)
-print(dependency_links)
+# Hack, for py37, use unreleased version of pyproj
+# This also requires installing cython in the .travis.yml,
+# and some `extras_require` entry (see below)
+if sys.version_info[:2] == (3, 7):
+    dependency_links.append(
+        'git+https://github.com/jswhit/pyproj.git@master#egg=pyproj-1.9.5.2.dev11'
+    )
+print('install_requires=', install_requires)
+print('dependency_links=', dependency_links)
 
 setup(
     name='calval',
@@ -36,12 +44,19 @@ setup(
         'calval': ['site_data/*']
     },
     install_requires=install_requires,
-    #
-    # Hack: no wheel for rasterio 1.0.3 on py3.4,
-    # and building from tarball fails...
+    # hacks specific for python versions:
     extras_require={
+        # no wheel for rasterio 1.0.3 on py3.4,
+        # and building from tarball fails...
         ':python_version == "3.4"': [
             'rasterio<1.0.3'
+        ],
+        ':python_version == "3.7"': [
+            # versions before 1.1.6 did not support py37
+            'python-geotiepoints>=1.1.6',
+            # pypi version does not support py37
+            # Note: 1.9.5.2 is not released yet: this is a hack to force usage of dependency-link
+            'pyproj>=1.9.5.2.dev11'
         ]
     },
     dependency_links=dependency_links

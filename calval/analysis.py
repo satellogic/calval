@@ -92,11 +92,8 @@ def plot(types, site_measurements, srfs, with_errors=True, fig=None, show=True):
     plt.title('Reflectance in %s' % site_measurements.meta['site'])
     plt.grid()
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
-    try:
-        plt.tight_layout()
-    except ValueError:  # https://github.com/matplotlib/matplotlib/issues/5456
-        pass
-    if show:
+    plt.tight_layout()
+    if show:  # pragma: no cover
         plt.show()
     return fig
 

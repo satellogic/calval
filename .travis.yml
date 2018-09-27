@@ -11,15 +11,28 @@ matrix:
         - python: 3.7
           dist: xenial
           sudo: true
+          install:
+              - "pip install cython"
+              - "pip install -r requirements-build.txt"
+              - "pip install --process-dependency-links --editable ."
 
 install:
-    - "pip install cython"
     - "pip install -r requirements-build.txt"
     - "pip install --process-dependency-links --editable ."
 
 script:
     - "pycodestyle"
     - "pytest tests/"
+
+deploy:
+    provider: pypi
+    distributions: "bdist_wheel"
+    user: telluric
+    password:
+        secure: "NH627atlZLB/rrP3Z2t5hNeUDlgB9OXb2oEt0Qk7TqoL6YRlY0A1n3yoYCa/kNiGrv8mkcHeAEBZ40dzsg7kjR85eybt5gR9J8V7PCqAZ7qfzv36m44v3O+RLgwzYjqN3qL7m5SOv9F1yy4S5mrB4KA964qxRXHq5bX17bfyAdT0EUN5WktpInDFu0fgySujwN+GFiU4gx5OBE+vB6qUzrlbLGYwVL/yRxVWvIcnQdr6fYFqC50G0UPWqlTeLnQ1cUmZbV9ep7VzNth08hn7oFc8yLQTg3N0EbfVInxmeiH4GXrIg4pHAI3zghp5vJDx9KnI0f6/o00Q0Si6w3BBxAFeE+RSwbRrX/UJh1O5EvVv+JEA/vrcR0XiymbPQqavOeKD9bodu8DIFlIyWbfl1Fmbd/6c8x8jwyCOXPYcjK1JCtrbeuqe/eQfZnoZ5KEwya2rQQJlCU49COaWZoS/ST8ShcceBoiyEFTmxQaVpQ9OWqwOml9/2ouH9A3j3htkjc5JFgFKMw5GMa+voEovVEcrL8P4/pVwwtZNi0hJRcHCYm3NL6EdiV7uweoLVlNxbXPJkbBY7SVEb+sTwJ6JN38lFTYYbqGcwMXP6WSIKeYTrcUIhrexibnyMPq2dLTcPsxq1pdwKX22SXFLfYY1kd4EACMqr39U91SSeEA3ryQ="
+    on:
+        tags: true
+        python: "3.6"
 
 cache:
     apt: true
