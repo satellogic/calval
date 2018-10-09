@@ -46,11 +46,6 @@ setup(
     install_requires=install_requires,
     # hacks specific for python versions:
     extras_require={
-        # no wheel for rasterio 1.0.3 on py3.4,
-        # and building from tarball fails...
-        ':python_version == "3.4"': [
-            'rasterio<1.0.3'
-        ],
         ':python_version == "3.7"': [
             # versions before 1.1.6 did not support py37
             # (geotiepoints is a dependency of pyspectral)
