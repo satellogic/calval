@@ -15,7 +15,7 @@ def sun_earth_distance(time):
     # TODO, get rid of this filtering once pysolar updates leapsecond data
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            'ignore', "I don't know about leap seconds after 2017")
+            'ignore', "I don't know about leap seconds after")
         jde = stime.get_julian_ephemeris_day(time)
         jce = stime.get_julian_ephemeris_century(jde)
         jme = stime.get_julian_ephemeris_millennium(jce)
