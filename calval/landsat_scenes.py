@@ -8,6 +8,7 @@ import tarfile
 import dateutil.parser
 import numpy as np
 from calval.geometry import IncidenceAngle
+from calval.normalized_scene import band_names
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
 from calval.landsat_mtl import read_mtl, ephemeris_df
@@ -32,8 +33,8 @@ l2_bands = [
 ]
 
 _band_aliases = dict(
-    toa=dict(B='B2', G='B3', R='B4', NIR='B5'),
-    sr=dict(B='sr_band2', G='sr_band3', R='sr_band4', NIR='sr_band5'),
+    toa=dict(blue='B2', green='B3', red='B4', nir='B5'),
+    sr=dict(blue='sr_band2', green='sr_band3', red='sr_band4', nir='sr_band5'),
 )
 
 _scale_values = {'toa_raw': scaling(2e-5, -0.1), 'sr': scaling(1e-4, 0)}
@@ -61,17 +62,17 @@ def _displayid_str(displayid):
 class LandsatSceneData(SceneData):
     # ex_irradiance, in W/(m^2 nm sr)
     band_ex_irradiance = {
-        _band_aliases['toa']['B']: srf_exatmospheric_irradiance(Landsat8Blue()),
-        _band_aliases['toa']['G']: srf_exatmospheric_irradiance(Landsat8Green()),
-        _band_aliases['toa']['R']: srf_exatmospheric_irradiance(Landsat8Red()),
-        _band_aliases['toa']['NIR']: srf_exatmospheric_irradiance(Landsat8Nir()),
+        _band_aliases['toa']['blue']: srf_exatmospheric_irradiance(Landsat8Blue()),
+        _band_aliases['toa']['green']: srf_exatmospheric_irradiance(Landsat8Green()),
+        _band_aliases['toa']['red']: srf_exatmospheric_irradiance(Landsat8Red()),
+        _band_aliases['toa']['nir']: srf_exatmospheric_irradiance(Landsat8Nir()),
     }
     # calculated the following backwards from 4 scenes of negev
     est_band_ex_irradiance = {
-        _band_aliases['toa']['B']: 2.01959,
-        _band_aliases['toa']['G']: 1.86106,
-        _band_aliases['toa']['R']: 1.56934,
-        _band_aliases['toa']['NIR']: 0.96037,
+        _band_aliases['toa']['blue']: 2.01959,
+        _band_aliases['toa']['green']: 1.86106,
+        _band_aliases['toa']['red']: 1.56934,
+        _band_aliases['toa']['nir']: 0.96037,
     }
 
     def __init__(self, sceneinfo, path=None):
@@ -132,7 +133,7 @@ class LandsatSceneData(SceneData):
             esuns.append(ratio * np.pi * self.sun_distance ** 2)
         self.estimated_esuns = esuns
         self.esuns = [esuns[band_index[_band_aliases['toa'][band]]]
-                      for band in ['B', 'G', 'R', 'NIR']]
+                      for band in band_names]
 
         # The view zenith is assumed to be 0 in landsat's own computation (so azimuth does not matter)
         # For accurate computation, need the Azimuth and the Roll

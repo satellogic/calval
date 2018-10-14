@@ -9,7 +9,7 @@ import numpy as np
 import rasterio as rio
 import telluric as tl
 from calval.scene_info import SceneInfo
-from calval.sat_measurements import band_names
+from calval.normalized_scene import band_names
 from calval.analysis import toa_irradiance_to_reflectance
 
 
@@ -160,7 +160,7 @@ class SceneData(ABC):
         if product is None:
             product = self.sceneinfo.product
 
-        footprint = self.raster('G').footprint().get_shape(tl.constants.WGS84_CRS)
+        footprint = self.raster('green').footprint().get_shape(tl.constants.WGS84_CRS)
         footprint_dict = {
             'coordinates': [list(footprint.boundary.coords)],
             'type': footprint.type
@@ -188,7 +188,7 @@ class SceneData(ABC):
 
     def _normalized_dirname(self, product=None):
         dirname = os.path.join(
-            self.sceneinfo.config['data_dir'],
+            self.sceneinfo._data_path('normalized'),
             self.sceneinfo.blob_prefix(product, self.timestamp))
         return dirname
 
@@ -218,3 +218,4 @@ class SceneData(ABC):
         path = os.path.join(dirname, '{}_metadata.json'.format(scene_id))
         with open(path, 'w') as f:
             json.dump(params, f, indent=4)
+        return path

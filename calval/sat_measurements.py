@@ -3,9 +3,9 @@ import re
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from calval.normalized_scene import band_names
 
-
-band_names = ['B', 'G', 'R', 'NIR']
+# band_names = ['B', 'G', 'R', 'NIR']  # old names (keep comment until fixed)
 band_colors = 'bgrk'
 provider_styles = {'landsat8': 'o-', 'sentinel2': 'd--'}
 

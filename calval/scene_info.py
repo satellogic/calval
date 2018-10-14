@@ -48,7 +48,8 @@ class SceneInfo:
     config = dict(
         data_dir=calval.config.data_dir,
         scenes=None,
-        archives=calval.config.dl_dir
+        archives=calval.config.dl_dir,
+        normalized=calval.config.normalized_dir
     )
     product_units = {
         'sr': None, 'toa': None
@@ -66,7 +67,7 @@ class SceneInfo:
 
     # funcs for generating normalized paths
 
-    def _path_params(self, product=None, timestamp=None):
+    def _path_params(self, product=None, timestamp=None, tag='0'):
         # We allow specifying product in order to support computed products
         if product is None:
             product = self.product
@@ -83,7 +84,7 @@ class SceneInfo:
             if timestamp.tzinfo is not None:
                 timestamp = timestamp.astimezone(dt.timezone.utc)
         ts = timestamp.strftime('%Y%m%d%H%M')
-        return [product, self.satellite, self.tile_id, ts]
+        return [product, self.satellite, self.tile_id, ts, tag]
 
     def blob_prefix(self, *args, **kwargs):
         return '/'.join(self._path_params(*args, **kwargs))

@@ -6,6 +6,7 @@ import zipfile
 
 import numpy as np
 from calval.geometry import IncidenceAngle
+from calval.normalized_scene import band_names
 from calval.scene_info import SceneInfo, extract_archive, scaling
 from calval.scene_data import SceneData
 from calval.sentinel_xml import parse_tile_metadata, parse_xml_metadata
@@ -26,7 +27,7 @@ _site_boxes = {
 }
 
 _band_aliases = dict(
-    B='B02', G='B03', R='B04', NIR='B08'
+    blue='B02', green='B03', red='B04', nir='B08'
 )
 
 
@@ -38,7 +39,7 @@ def _band_id(name):
 
 _band_resolutions = dict(
     AOT=10, TCI=10, WVP=10,
-    # B, G, R, NIR
+    # blue, green, red, nir
     B02=10, B03=10, B04=10, B08=10,
     #
     SCL=20,
@@ -58,10 +59,10 @@ sentinelid = collections.namedtuple(
 
 class SentinelSceneData(SceneData):
     band_ex_irradiance = {
-        _band_aliases['B']: srf_exatmospheric_irradiance(Sentinel2Blue()),
-        _band_aliases['G']: srf_exatmospheric_irradiance(Sentinel2Green()),
-        _band_aliases['R']: srf_exatmospheric_irradiance(Sentinel2Red()),
-        _band_aliases['NIR']: srf_exatmospheric_irradiance(Sentinel2Nir())
+        _band_aliases['blue']: srf_exatmospheric_irradiance(Sentinel2Blue()),
+        _band_aliases['green']: srf_exatmospheric_irradiance(Sentinel2Green()),
+        _band_aliases['red']: srf_exatmospheric_irradiance(Sentinel2Red()),
+        _band_aliases['nir']: srf_exatmospheric_irradiance(Sentinel2Nir())
     }
 
     def __init__(self, sceneinfo, path=None):
@@ -82,7 +83,7 @@ class SentinelSceneData(SceneData):
         self.esuns = [
             data['Solar_Irradiance_List']['SOLAR_IRRADIANCE_{}'.format(
                 _band_id(_band_aliases[band]))]
-            for band in ['B', 'G', 'R', 'NIR']
+            for band in band_names
         ]
         self.sun_distance = np.sqrt(1.0 / data['U'])  # assuming U is `d(t)` of the TG
         data = metadata['Geometric_Info']['Product_Footprint']['Product_Footprint']
@@ -98,14 +99,14 @@ class SentinelSceneData(SceneData):
         def _view_angle(bandid):
             mean_view_list = metadata['Geometric_Info']['Tile_Angles']['Mean_Viewing_Incidence_Angle_List']
             return mean_view_list['Mean_Viewing_Incidence_Angle_{}'.format(bandid)]
-        assert _view_angle(_band_id(_band_aliases['G']))['AZIMUTH_ANGLE_unit'] == 'deg'
+        assert _view_angle(_band_id(_band_aliases['green']))['AZIMUTH_ANGLE_unit'] == 'deg'
         # NOTE: Seem to be large differences between viewing angles of the channels
         # TODO: make per-channel calcs!
         angles = [_view_angle(_band_id(_band_aliases[band]))['AZIMUTH_ANGLE']
-                  for band in ['B', 'G', 'R', 'NIR']]
+                  for band in band_names]
         view_average_azimuth = np.average(angles)
         angles = [_view_angle(_band_id(_band_aliases[band]))['ZENITH_ANGLE']
-                  for band in ['B', 'G', 'R', 'NIR']]
+                  for band in band_names]
         view_average_zenith = np.average(angles)
         self.sat_average_angle = IncidenceAngle(view_average_azimuth, 90 - view_average_zenith)
         sun_azimuth = metadata['Geometric_Info']['Tile_Angles']['Mean_Sun_Angle']['AZIMUTH_ANGLE']
