@@ -6,6 +6,7 @@ scene_id and sceneset_id can be either normalized or provider-specific (provider
 scene_id are useful when using provider-specific storage backend).
 """
 import os
+import glob
 from collections import namedtuple
 from functools import total_ordering
 import json
@@ -18,6 +19,16 @@ tile_cache = TileCache()
 sceneid_params = namedtuple('sceneid_params', ['product', 'satellite', 'tile_id', 'timestamp', 'tag'])
 sceneid_params.__new__.__defaults__ = ('0',)  # default tag
 scenesetid_params = namedtuple('scenesetid_params', ['satellite', 'tile_id', 'timestamp'])
+
+
+class cached_property:
+    def __init__(self, function):
+        self._function = function
+
+    def __get__(self, obj, _=None):
+        value = self._function(obj)
+        setattr(obj, self._function.__name__, value)
+        return value
 
 
 @total_ordering
@@ -36,8 +47,8 @@ class StringableTuple:
         self.params = self.tuple_type(*args, **kwargs)
 
     @classmethod
-    def from_str(cls, s):
-        str_tuple = cls.tuple_type(*s.split('_'))
+    def from_str(cls, s, separator='_'):
+        str_tuple = cls.tuple_type(*s.split(separator))
         obj = cls(*(cls._fromstr(getattr(str_tuple, field), field)
                     for field in cls.tuple_type._fields))
         return obj
@@ -113,29 +124,47 @@ class NormalizedSceneId(StringableTuple):
 class NormalizedScene:
     def __init__(self, metadata, band_urls):
         self.metadata = metadata
-        self.bands = band_urls
+        self.band_urls = band_urls
 
     @property
     def scene_info(self):
         return NormalizedSceneId.from_str(self['scene_id'])
-
-    @classmethod
-    def from_file(cls, path, band_urls=None):
-        """
-        build from metadata file, band_urls either specifed, or assumed to be
-        files in the same directory as path.
-        """
-        data = json.load(open(path))
-        scene_id = NormalizedSceneId.from_str(data['scene_id'])
-        if band_urls is None:
-            dirname = os.path.dirname(os.path.abspath(path))
-            band_urls = {band: os.path.join(dirname, '{}_{}.tif'.format(scene_id, band))
-                         for band in band_names}
-        return cls(data, band_urls)
 
     def __getitem__(self, key):
         return self.metadata[key]
 
     def band_tile(self, band, tile_coords, zoomlevel=None,
                   get_tile=uncached_get_tile):
-        return hires_tile(self.bands[band], tile_coords, zoomlevel, get_tile=get_tile)
+        return hires_tile(self.band_urls[band], tile_coords, zoomlevel, get_tile=get_tile)
+
+
+class FilebasedScene(NormalizedScene):
+    def __init__(self, path, band_urls=None):
+        """
+        Lazy NormalizedScene that is read from files.
+        `path` points to the metadata file, or to a directory that contains a single metadata file.
+        `band_urls` are either specifed, or assumed to be files in the same directory
+        as `path`.
+        """
+        if band_urls is not None:
+            self.band_urls = band_urls
+
+        if os.path.isfile(path):
+            self._metadata_path = path
+            self._path = os.path.abspath(os.path.dirname(path))
+        elif os.path.isdir(path):
+            self._path = path
+            fnames = glob.glob(os.path.join(path, '*_metadata.json'))
+            assert len(fnames) == 1, 'directory should have a single metadata file'
+            self._metadata_path = fnames[0]
+
+    @cached_property
+    def band_urls(self):
+        scene_id_str = self.metadata['scene_id']
+        band_urls = {band: os.path.join(self._path, '{}_{}.tif'.format(scene_id_str, band))
+                     for band in band_names}
+        return band_urls
+
+    @cached_property
+    def metadata(self):
+        return json.load(open(self._metadata_path))

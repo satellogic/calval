@@ -1,10 +1,7 @@
 import os
 import datetime as dt
-from tempfile import TemporaryDirectory
-from testing_utils import config
-from calval.scene_info import SceneInfo
-from calval.scene_data import SceneData
-from calval.normalized_scene import NormalizedSceneId, band_names, NormalizedScene
+from testing_utils import normalize_folders_into
+from calval.normalized_scene import NormalizedSceneId, band_names, NormalizedScene, FilebasedScene
 
 scene_id_strs = [
     'toa_S2B_T49TCF_201806260335',
@@ -44,20 +41,47 @@ def test_paths():
     assert set(band_urls.keys()) == set(band_names)
 
 
-def test_normalized_scene():
-    with TemporaryDirectory() as folder:
-        folder = '/tmp/aaa'
-        config2 = dict(config)
-        config2['normalized'] = os.path.join(folder, 'normalized')
-        # normalize scene
-        info = SceneInfo.from_foldername(
-            'S2A_MSIL1C_20180526T081601_N0206_R121_T36RXU_20180526T120617.SAFE',
-            config=config2)
-        s2_scene = SceneData.from_sceneinfo(info)
-        path = s2_scene.save_normalized()
-        # load it
-        normscene = NormalizedScene.from_file(path)
-        assert str(normscene.scene_info) == normscene['scene_id']
-        assert normscene['satellite_class'] == 'sentinel2'
-        green_tile = normscene.band_tile('green', (2446, 1688, 12))
-        assert green_tile.shape == (1, 256, 256)
+def test_filebased_scene(module_temp_dir):
+    # normalize scene
+    normpath = os.path.join(module_temp_dir, 'normalized')
+    paths = normalize_folders_into(
+        normpath, ['S2A_MSIL1C_20180526T081601_N0206_R121_T36RXU_20180526T120617.SAFE'])
+    # load it
+    scene = FilebasedScene(paths[0])
+    assert scene['productname'] == 'toa'
+    assert scene['sceneset_id'] != scene['scene_id']
+    assert normpath in scene.band_urls['red']
+    # load using metadata filename and urls
+    meta_file = scene._metadata_path
+    band_urls = dict(scene.band_urls)
+    scene2 = FilebasedScene(meta_file, band_urls=band_urls)
+    assert scene2.metadata == scene.metadata
+    green_tile = scene2.band_tile('green', (2446, 1688, 12))
+    assert green_tile.shape == (1, 256, 256)
+
+
+def test_normalized_scene(module_temp_dir):
+    meta = {
+        'supplier': 'ESA',
+        'satellite_class': 'sentinel2',
+        'satellite_name': 'S2A',
+        'productname': 'toa',
+        'metadata': {},
+        'scene_id': 'toa_S2A_T36RXU_201805260819_0',
+        'sceneset_id': 'S2A_T36RXU_201805260819',
+        'timestamp': '2018-05-26T08:19:19.284000+00:00',
+        'last_modified': '2018-10-17T08:03:32.116058+00:00'
+    }
+    # find the images saved by the filebased test
+    sceneid = NormalizedSceneId.from_str(meta['scene_id'])
+    norm_dir = os.path.join(module_temp_dir, 'normalized')
+    scene_dir = os.path.join(norm_dir, sceneid.scenepath_prefix())
+    band_urls = sceneid.band_urls(norm_dir + '/')
+    for url in band_urls.values():
+        assert url.startswith(scene_dir)
+    # verify scene sanity
+    normscene = NormalizedScene(meta, band_urls)
+    assert str(normscene.scene_info) == normscene['scene_id']
+    assert normscene['satellite_class'] == 'sentinel2'
+    nir_tile = normscene.band_tile('nir', (2446, 1688, 12))
+    assert nir_tile.shape == (1, 256, 256)

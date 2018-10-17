@@ -1,7 +1,6 @@
 import os
 import shutil
 import glob
-from tempfile import TemporaryDirectory
 from testing_utils import config
 from calval.raster_utils import TileCache, hires_tile
 
@@ -17,20 +16,19 @@ def test_hires_tile():
     assert tile.shape == (1, 256, 256)
 
 
-def test_cache():
-    with TemporaryDirectory() as folder:
-        cache = TileCache(os.path.join(folder, 'cache'))
-        assert len(glob.glob(os.path.join(cache.folder, '*.tif'))) == 0
-        # copy the raster to the temp dir
-        target_path = os.path.join(folder, os.path.basename(green_url))
-        shutil.copyfile(green_url, target_path)
-        # open target using cache
-        tile = hires_tile(target_path, tile_coords, tile_coords[2] + 1,
-                          get_tile=cache.get_tile)
-        assert tile.shape == (1, 512, 512)
-        assert len(glob.glob(os.path.join(cache.folder, '*.tif'))) == 4
-        # remove the target, open again using cache
-        os.remove(target_path)
-        tile = hires_tile(target_path, tile_coords, tile_coords[2] + 1,
-                          get_tile=cache.get_tile)
-        assert tile.shape == (1, 512, 512)
+def test_cache(temp_dir):
+    cache = TileCache(os.path.join(temp_dir, 'cache'))
+    assert len(glob.glob(os.path.join(cache.folder, '*.tif'))) == 0
+    # copy the raster to the temp dir
+    target_path = os.path.join(temp_dir, os.path.basename(green_url))
+    shutil.copyfile(green_url, target_path)
+    # open target using cache
+    tile = hires_tile(target_path, tile_coords, tile_coords[2] + 1,
+                      get_tile=cache.get_tile)
+    assert tile.shape == (1, 512, 512)
+    assert len(glob.glob(os.path.join(cache.folder, '*.tif'))) == 4
+    # remove the target, open again using cache
+    os.remove(target_path)
+    tile = hires_tile(target_path, tile_coords, tile_coords[2] + 1,
+                      get_tile=cache.get_tile)
+    assert tile.shape == (1, 512, 512)

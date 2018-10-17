@@ -9,7 +9,7 @@ import numpy as np
 import rasterio as rio
 import telluric as tl
 from calval.scene_info import SceneInfo
-from calval.normalized_scene import band_names
+from calval.normalized_scene import band_names, NormalizedSceneId
 from calval.analysis import toa_irradiance_to_reflectance
 
 
@@ -73,8 +73,8 @@ class SceneData(ABC):
         return sceneinfo.scenedata_class(sceneinfo, path)
 
     @classmethod
-    def from_path(cls, path):
-        sceneinfo = SceneInfo.from_foldername(os.path.basename(path))
+    def from_path(cls, path, config=None):
+        sceneinfo = SceneInfo.from_foldername(os.path.basename(path), config=config)
         return cls.from_sceneinfo(sceneinfo, path)
 
     def get_band_path(self, band):
@@ -165,7 +165,7 @@ class SceneData(ABC):
             'coordinates': [list(footprint.boundary.coords)],
             'type': footprint.type
         }
-        scene_id = self.sceneinfo.fname_prefix(product, self.timestamp)
+        sceneid = NormalizedSceneId.from_str(self.sceneinfo.fname_prefix(product, self.timestamp))
         metadata = self.get_metadata()
 
         params = {
@@ -175,8 +175,8 @@ class SceneData(ABC):
             'productname': product,
             'footprint': footprint_dict,
             'metadata': metadata,
-            'scene_id': scene_id,
-            'sceneset_id': scene_id,
+            'scene_id': str(sceneid),
+            'sceneset_id': str(sceneid.sceneset_id),
             'timestamp': self.timestamp.replace(
                 tzinfo=dt.timezone.utc).isoformat()  # self.timestamp is unaware
             # 'last_modified': '',
