@@ -1,9 +1,9 @@
 import os
 import numpy as np
 from testing_utils import config
-from calval.scene_info import SceneInfo
+from calval.providers import SceneInfo
 from calval.scene_utils import make_sat_measurements
-from calval.sat_measurements import band_names
+from calval.normalized_scene import band_names
 
 expected_blue_toa = {'landsat8': 0.21, 'sentinel2': 0.23}
 expected_blue_sr = {'landsat8': 0.19}

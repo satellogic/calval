@@ -4,11 +4,10 @@ import pandas as pd
 from calval.sites import get_site_aoi
 from calval.sat_measurements import SatMeasurements
 from calval.normalized_scene import band_names
-from calval.scene_info import SceneInfo
-from calval.scene_data import SceneData
+from calval.providers import SceneInfo, SceneData
 # Import provider module to enable the factory mechanism
-import calval.sentinel_scenes  # noqa: F401
-import calval.landsat_scenes  # noqa: F401
+import calval.providers.sentinel  # noqa: F401
+import calval.providers.landsat  # noqa: F401
 
 
 logger = logging.getLogger(__name__)

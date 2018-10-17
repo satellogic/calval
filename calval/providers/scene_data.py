@@ -8,9 +8,9 @@ import datetime as dt
 import numpy as np
 import rasterio as rio
 import telluric as tl
-from calval.scene_info import SceneInfo
 from calval.normalized_scene import band_names, NormalizedSceneId
 from calval.analysis import toa_irradiance_to_reflectance
+from .scene_info import SceneInfo
 
 
 logger = logging.getLogger(__name__)

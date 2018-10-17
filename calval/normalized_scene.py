@@ -11,6 +11,7 @@ from collections import namedtuple
 from functools import total_ordering
 import json
 import datetime as dt
+from calval.utils import cached_property
 from calval.raster_utils import hires_tile, TileCache, uncached_get_tile
 
 band_names = ['blue', 'green', 'red', 'nir']
@@ -19,16 +20,6 @@ tile_cache = TileCache()
 sceneid_params = namedtuple('sceneid_params', ['product', 'satellite', 'tile_id', 'timestamp', 'tag'])
 sceneid_params.__new__.__defaults__ = ('0',)  # default tag
 scenesetid_params = namedtuple('scenesetid_params', ['satellite', 'tile_id', 'timestamp'])
-
-
-class cached_property:
-    def __init__(self, function):
-        self._function = function
-
-    def __get__(self, obj, _=None):
-        value = self._function(obj)
-        setattr(obj, self._function.__name__, value)
-        return value
 
 
 @total_ordering

@@ -4,7 +4,7 @@ import glob
 import numpy as np
 import pytest
 
-import calval.batch_plot  # noqa: F401
+import calval.utils.batch_plot  # noqa: F401
 from radcalnet.site_measurements import SiteMeasurements
 from calval.sun_locator import SunLocator
 from calval.geometry import IncidenceAngle

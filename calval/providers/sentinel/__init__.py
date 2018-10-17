@@ -7,11 +7,11 @@ import zipfile
 import numpy as np
 from calval.geometry import IncidenceAngle
 from calval.normalized_scene import band_names
-from calval.scene_info import SceneInfo, extract_archive, scaling
-from calval.scene_data import SceneData
-from calval.sentinel_xml import parse_tile_metadata, parse_xml_metadata
 from calval.satellites.srf import Sentinel2Blue, Sentinel2Green, Sentinel2Red, Sentinel2Nir
 from calval.analysis import srf_exatmospheric_irradiance
+from calval.providers import SceneInfo, SceneData
+from calval.providers.scene_info import extract_archive, scaling
+from .sentinel_xml import parse_tile_metadata, parse_xml_metadata
 
 _product_names = {
     'MSIL1C': 'toa',
