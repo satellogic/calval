@@ -2,7 +2,7 @@ import pytest
 
 import numpy as np
 
-import calval.batch_plot  # noqa: F401
+import calval.utils.batch_plot  # noqa: F401
 from calval.satellites.srf import \
     (SRF, PerfectSRF, Sentinel2Nir, Sentinel2Red, Sentinel2Green, Sentinel2Blue,
      Landsat8Blue, Landsat8Green, Landsat8Red, Landsat8Nir, plot_srfs,

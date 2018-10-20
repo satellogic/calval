@@ -8,9 +8,9 @@ import datetime as dt
 import numpy as np
 import rasterio as rio
 import telluric as tl
-from calval.scene_info import SceneInfo
-from calval.sat_measurements import band_names
+from calval.normalized_scene import band_names, NormalizedSceneId
 from calval.analysis import toa_irradiance_to_reflectance
+from .scene_info import SceneInfo
 
 
 logger = logging.getLogger(__name__)
@@ -73,8 +73,8 @@ class SceneData(ABC):
         return sceneinfo.scenedata_class(sceneinfo, path)
 
     @classmethod
-    def from_path(cls, path):
-        sceneinfo = SceneInfo.from_foldername(os.path.basename(path))
+    def from_path(cls, path, config=None):
+        sceneinfo = SceneInfo.from_foldername(os.path.basename(path), config=config)
         return cls.from_sceneinfo(sceneinfo, path)
 
     def get_band_path(self, band):
@@ -160,12 +160,12 @@ class SceneData(ABC):
         if product is None:
             product = self.sceneinfo.product
 
-        footprint = self.raster('G').footprint().get_shape(tl.constants.WGS84_CRS)
+        footprint = self.raster('green').footprint().get_shape(tl.constants.WGS84_CRS)
         footprint_dict = {
             'coordinates': [list(footprint.boundary.coords)],
             'type': footprint.type
         }
-        scene_id = self.sceneinfo.fname_prefix(product, self.timestamp)
+        sceneid = NormalizedSceneId.from_str(self.sceneinfo.fname_prefix(product, self.timestamp))
         metadata = self.get_metadata()
 
         params = {
@@ -175,8 +175,8 @@ class SceneData(ABC):
             'productname': product,
             'footprint': footprint_dict,
             'metadata': metadata,
-            'scene_id': scene_id,
-            'sceneset_id': scene_id,
+            'scene_id': str(sceneid),
+            'sceneset_id': str(sceneid.sceneset_id),
             'timestamp': self.timestamp.replace(
                 tzinfo=dt.timezone.utc).isoformat()  # self.timestamp is unaware
             # 'last_modified': '',
@@ -188,7 +188,7 @@ class SceneData(ABC):
 
     def _normalized_dirname(self, product=None):
         dirname = os.path.join(
-            self.sceneinfo.config['data_dir'],
+            self.sceneinfo._data_path('normalized'),
             self.sceneinfo.blob_prefix(product, self.timestamp))
         return dirname
 
@@ -218,3 +218,4 @@ class SceneData(ABC):
         path = os.path.join(dirname, '{}_metadata.json'.format(scene_id))
         with open(path, 'w') as f:
             json.dump(params, f, indent=4)
+        return path

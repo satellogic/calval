@@ -7,13 +7,13 @@ import telluric as tl
 from tqdm import tqdm
 from azure.storage.blob import BlockBlobService
 
-from calval.scene_info import SceneInfo
+from calval.normalized_scene import band_names
+from calval.providers import SceneInfo, SceneData
 # Import provider module to enable the factory mechanism
-import calval.sentinel_scenes  # noqa: F401
-import calval.landsat_scenes  # noqa: F401
+import calval.providers.sentinel  # noqa: F401
+import calval.providers.landsat  # noqa: F401
 from calval.scene_utils import make_sat_measurements
 from calval.sat_measurements import SatMeasurements
-from calval.scene_data import SceneData
 
 
 logger = logging.getLogger()
@@ -175,20 +175,20 @@ if (0):
 # Upload normalized scenes
 if (0):
     # scene = scenes_l8[2]
-    # upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+    # upload_normalized(scene, band_names, 'toa')
     for scene in []:  # scenes_l8[3:]:
         print('saving', scene.sceneinfo.scene_id)
         scene.save_normalized()
         print('uploading...')
-        upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+        upload_normalized(scene, band_names, 'toa')
 
     scene = scenes_s2[2]
-    upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+    upload_normalized(scene, band_names, 'toa')
     for scene in scenes_s2[3:]:
         print('saving', scene.sceneinfo.scene_id)
         scene.save_normalized()
         print('uploading...')
-        upload_normalized(scene, ['B', 'G', 'R', 'NIR'], 'toa')
+        upload_normalized(scene, band_names, 'toa')
 
 
 if (0):
@@ -197,7 +197,7 @@ if (0):
     svc = BlockBlobService(connection_string=connection_string)
     container = 'calval'
     # all = list(svc.list_blobs(container))
-    band = 'B'
+    band = 'blue'
     product = 'toa'
     print(scene_s2._normalized_dirname(product))
     blob_prefix = scene_s2.sceneinfo.blob_prefix(product, scene_s2.timestamp)
@@ -218,7 +218,7 @@ if (0):
 
 if (0):
     pairs = {}
-    for band in ['G', 'B', 'R', 'NIR']:
+    for band in band_names:
         print('saving band: {}'.format(band))
         l8_tile = tl.GeoRaster2.open(scene_l8.get_normalized_path(band)).get_tile(2446, 1688, 12)
         l8_tile.save('/tmp/l8_tile_{}.tif'.format(band), nodata=0)
@@ -227,8 +227,8 @@ if (0):
         pairs[band] = [np.ravel(l8_tile.image[0]), np.ravel(s2_tile.image[0])]
 if (0):
     import matplotlib.pyplot as plt
-    l8_tile = tl.GeoRaster2.open(scene_l8.get_normalized_path('B')).get_tile(2446, 1688, 12)
-    s2_tile = tl.GeoRaster2.open(scene_s2.get_normalized_path('B')).get_tile(2446, 1688, 12)
+    l8_tile = tl.GeoRaster2.open(scene_l8.get_normalized_path('blue')).get_tile(2446, 1688, 12)
+    s2_tile = tl.GeoRaster2.open(scene_s2.get_normalized_path('blue')).get_tile(2446, 1688, 12)
     x, y = [np.ma.ravel(x.image) / 65536.0 for x in [l8_tile, s2_tile]]
     plt.figure()
     plt.plot(x, y, ',')
