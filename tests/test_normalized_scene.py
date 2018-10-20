@@ -1,7 +1,10 @@
 import os
 import datetime as dt
-from testing_utils import normalize_folders_into
-from calval.normalized_scene import NormalizedSceneId, band_names, NormalizedScene, FilebasedScene
+import pytest
+import numpy as np
+from testing_utils import normalize_folders_into, config
+from calval.normalized_scene import (
+    NormalizedSceneId, band_names, NormalizedScene, FilebasedScene, URLScene)
 
 scene_id_strs = [
     'toa_S2B_T49TCF_201806260335',
@@ -85,3 +88,21 @@ def test_normalized_scene(module_temp_dir):
     assert normscene['satellite_class'] == 'sentinel2'
     nir_tile = normscene.band_tile('nir', (2446, 1688, 12))
     assert nir_tile.shape == (1, 256, 256)
+
+
+@pytest.mark.skipif('azure_blob_prefix' not in config,
+                    reason='azure_blob_prefix unconfigured')
+def test_url_scene():
+    url_prefix = config['azure_blob_prefix']
+    scene_id = NormalizedSceneId.from_str('sr_LC08_174039_201805150810_0')
+    metadata_path = url_prefix + scene_id.metadata_path()
+    scene = URLScene(metadata_path)
+    assert scene.scene_info == scene_id
+    nir_tile = scene.band_tile('nir', (2446, 1688, 12))
+    assert nir_tile.shape == (1, 256, 256)
+    scene2 = URLScene(metadata_path, url_prefix + scene_id.dir_path())
+    assert scene2.band_urls == scene.band_urls
+    # with explicit band_urls:
+    scene3 = URLScene(metadata_path, {'green': scene2.band_urls['nir']})
+    tile3 = scene3.band_tile('green', (2446, 1688, 12))
+    assert np.allclose(tile3.image, nir_tile.image)

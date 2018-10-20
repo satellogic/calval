@@ -46,6 +46,9 @@ setup(
     install_requires=install_requires,
     # hacks specific for python versions:
     extras_require={
+        'azure_storage': [
+            'azure-storage-blob'
+        ],
         ':python_version == "3.7"': [
             # pypi version does not support py37
             # Note: 1.9.5.2 is not released yet: this is a hack to force usage of dependency-link
