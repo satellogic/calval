@@ -153,7 +153,7 @@ class URLScene(NormalizedScene):
     @cached_property
     def metadata(self):
         with urllib.request.urlopen(self._metadata_url) as f:
-            metadata = json.load(f)
+            metadata = json.loads(f.read().decode('utf-8'))
         return metadata
 
     @cached_property
