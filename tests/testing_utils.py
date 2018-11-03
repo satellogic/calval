@@ -12,6 +12,7 @@ import calval.providers.sentinel  # noqa: F401
 import calval.providers.landsat  # noqa: F401
 
 testdir = os.path.abspath(os.path.dirname(__file__))
+original_shapes_dir = calval.config.shapes_dir
 calval.config.shapes_dir = os.path.join(testdir, 'data', 'sites')
 config = dict(SceneInfo.config)
 config.update(scenes=os.path.join(testdir, 'data', 'scenes'))
