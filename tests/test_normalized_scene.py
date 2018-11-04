@@ -61,6 +61,7 @@ def test_filebased_scene(module_temp_dir):
     assert scene2.metadata == scene.metadata
     green_tile = scene2.band_tile('green', (2446, 1688, 12))
     assert green_tile.shape == (1, 256, 256)
+    assert green_tile.dtype == np.float64
 
 
 def test_normalized_scene(module_temp_dir):
@@ -106,3 +107,7 @@ def test_url_scene():
     scene3 = URLScene(metadata_path, {'green': scene2.band_urls['nir']})
     tile3 = scene3.band_tile('green', (2446, 1688, 12))
     assert np.allclose(tile3.image, nir_tile.image)
+    # whole band
+    raster = scene2.float_band('green')
+    assert raster.image.dtype == np.float64
+    assert np.ma.average(raster.image) == pytest.approx(0.2574, rel=1e-4)

@@ -12,8 +12,9 @@ from functools import total_ordering
 import json
 import datetime as dt
 import urllib.request
+import telluric as tl
 from calval.utils import cached_property
-from calval.raster_utils import hires_tile, TileCache, uncached_get_tile
+from calval.raster_utils import hires_tile, TileCache, uncached_get_tile, asfloat
 
 band_names = ['blue', 'green', 'red', 'nir']
 tile_cache = TileCache()
@@ -125,9 +126,13 @@ class NormalizedScene:
     def __getitem__(self, key):
         return self.metadata[key]
 
+    def float_band(self, band):
+        return asfloat(tl.GeoRaster2.open(self.band_urls[band]))
+
     def band_tile(self, band, tile_coords, zoomlevel=None,
-                  get_tile=uncached_get_tile):
-        return hires_tile(self.band_urls[band], tile_coords, zoomlevel, get_tile=get_tile)
+                  get_tile=uncached_get_tile, decode=True):
+        return hires_tile(self.band_urls[band], tile_coords, zoomlevel,
+                          get_tile=get_tile, decode=decode)
 
 
 class URLScene(NormalizedScene):

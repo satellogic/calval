@@ -1,8 +1,9 @@
 import os
 import shutil
 import glob
+import numpy as np
 from testing_utils import config
-from calval.raster_utils import TileCache, hires_tile
+from calval.raster_utils import TileCache, hires_tile, asfloat
 
 green_url = os.path.join(
     config['scenes'],
@@ -14,6 +15,13 @@ tile_coords = (2446, 1688, 12)
 def test_hires_tile():
     tile = hires_tile(green_url, tile_coords)
     assert tile.shape == (1, 256, 256)
+    tile_float = hires_tile(green_url, tile_coords, decode=True)
+    assert tile_float.dtype == np.float64
+    # validate the transofrmation
+    assert np.all(tile.image.mask == tile_float.image.mask)
+    assert np.ma.allclose(tile.image / (1 << 16), tile_float.image)
+    # test asfloat()
+    assert tile_float == asfloat(tile)
 
 
 def test_cache(temp_dir):
