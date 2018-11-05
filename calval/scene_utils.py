@@ -2,7 +2,7 @@ import logging
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from calval.utils import cached_property
+from calval.utils import cached_property, nanquantile
 from calval.raster_utils import uncached_get_tile
 from calval.sites import get_site_aoi, site_tile
 from calval.sat_measurements import SatMeasurements
@@ -51,12 +51,12 @@ class TilePile:
         quantile `q` of abs(rel distance) from `ref_band` (masked array)
         """
         absdiff = np.ma.abs(self.raster.image - ref_band) / ref_band
-        return np.nanquantile(absdiff.filled(np.nan), q)
+        return nanquantile(absdiff.filled(np.nan), q)
 
     def quantile_reldiff(self, ref_band, q):
         """quantile `q` of relative distance from `ref_band` (masked array)"""
         diff = (self.raster.image - ref_band) / ref_band
-        return np.nanquantile(diff.filled(np.nan), q)
+        return nanquantile(diff.filled(np.nan), q)
 
     # TODO: for small number of rasters (in particular 2 & 3), need self-distance from median.
     # correct way is to do weighted quantile, giving weight=0.5 for two mid-values if even, and

@@ -10,3 +10,12 @@ except ImportError:
             value = self._function(obj)
             setattr(obj, self._function.__name__, value)
             return value
+try:
+    # Support numpy<1.15
+    from numpy import nanquantile
+except ImportError:
+    # nanpercentile is available since numpy 1.9
+    from numpy import nanpercentile, asarray
+
+    def nanquantile(a, q, *args, **kwargs):
+        return nanpercentile(a, asarray(q) * 100, *args, **kwargs)
