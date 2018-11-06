@@ -1,4 +1,3 @@
-fiona<1.8.0
 radcalnet>=0.1.1
 python-dateutil
 appdirs
