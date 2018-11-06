@@ -1,6 +1,7 @@
 import os
 import glob
 from mercantile import tiles
+from fiona import ensure_env_with_credentials
 import telluric as tl
 import calval.config
 
@@ -16,6 +17,7 @@ def site_names(shapes_dir=None):
     return [x[:-len('_poly.shp')] for x in filenames]
 
 
+@ensure_env_with_credentials
 def get_site_aoi(site_name, shapes_dir=None):
     if shapes_dir is None:
         shapes_dir = calval.config.shapes_dir
