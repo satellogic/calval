@@ -28,8 +28,6 @@ after_success:
     - test $TRAVIS_BRANCH = "master" &&
       pip install codecov &&
       codecov
-    on:
-        python: "3.6"
 
 deploy:
     provider: pypi
