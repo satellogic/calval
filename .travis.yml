@@ -24,6 +24,13 @@ script:
     - "pycodestyle"
     - "pytest tests/"
 
+after_success:
+    - test $TRAVIS_BRANCH = "master" &&
+      pip install codecov &&
+      codecov
+    on:
+        python: "3.6"
+
 deploy:
     provider: pypi
     distributions: "bdist_wheel"
