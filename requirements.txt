@@ -6,4 +6,4 @@ pysolar>=0.8
 pyspectral
 matplotlib>=2.2.3
 pandas>=0.20
-telluric>=0.1
+telluric>=0.7
