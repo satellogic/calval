@@ -41,7 +41,7 @@ setup(
     ],
     packages=find_packages(),
     package_data={
-        'calval': ['site_data/*']
+        'calval': ['site_data/*', 'satellites/*.json']
     },
     install_requires=install_requires,
     # hacks specific for python versions:
