@@ -14,11 +14,11 @@ matrix:
           install:
               - "pip install cython"
               - "pip install -r requirements-build.txt"
-              - "pip install --process-dependency-links --editable .[azure_storage]"
+              - "pip install --editable .[azure_storage]"
 
 install:
     - "pip install -r requirements-build.txt"
-    - "pip install --process-dependency-links --editable .[azure_storage]"
+    - "pip install --editable .[azure_storage]"
 
 script:
     - "pycodestyle"
